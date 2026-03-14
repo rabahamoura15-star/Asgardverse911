@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and gamification stats",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string" },
+        "xp": { "type": "number", "description": "Experience points" },
+        "level": { "type": "number", "description": "Current level" },
+        "rank": { "type": "string", "enum": ["E", "D", "C", "B", "A", "S", "SS", "SSS", "GOD"] },
+        "coins": { "type": "number", "description": "Gold currency" },
+        "voidCrystals": { "type": "number", "description": "Premium currency" },
+        "abyssalDust": { "type": "number", "description": "Dust from burning cards" },
+        "energy": { "type": "number", "description": "Sanity/Energy" },
+        "lastLogin": { "type": "string", "format": "date-time" },
+        "nsfwEnabled": { "type": "boolean" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "inventory": { "type": "array", "items": { "type": "object" }, "description": "The items the user owns, including durability and merge level." },
+        "pityCounter": { "type": "number", "description": "Pity counter for gacha." },
+        "lastTaxTime": { "type": "string", "format": "date-time", "description": "Last time the wealth tax was applied." },
+        "protectionWardUntil": { "type": "string", "format": "date-time", "description": "Expiration time of the protection ward." },
+        "abyssFloor": { "type": "number", "description": "Current floor in the Infinite Abyss." },
+        "abyssRewards": { "type": "object", "description": "Accumulated rewards in the current Abyss run." },
+        "lastRaid": { "type": "string", "format": "date-time", "description": "Last time the user raided." },
+        "lastGateEntry": { "type": "string", "format": "date-time", "description": "Last time the user entered a gate." },
+        "worldBossDamage": { "type": "number", "description": "Damage dealt to the current world boss." }
+      },
+      "required": ["uid", "xp", "level", "rank", "coins", "voidCrystals", "abyssalDust", "energy", "lastLogin", "nsfwEnabled", "role", "pityCounter"]
+    },
+    "Guild": {
+      "title": "Guild",
+      "description": "A group of users",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "leaderId": { "type": "string" },
+        "members": { "type": "array", "items": { "type": "string" } },
+        "xp": { "type": "number" },
+        "level": { "type": "number" },
+        "controlledPages": { "type": "array", "items": { "type": "string" }, "description": "Anime/Manga pages controlled by the guild." },
+        "goldPool": { "type": "number", "description": "Gold accumulated by the guild." }
+      },
+      "required": ["name", "leaderId", "members", "xp", "level", "goldPool"]
+    },
+    "WorldBoss": {
+      "title": "WorldBoss",
+      "description": "Global Calamity event",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "maxHp": { "type": "number" },
+        "currentHp": { "type": "number" },
+        "spawnTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["active", "defeated", "failed"] },
+        "participants": { "type": "object", "additionalProperties": { "type": "number" }, "description": "Map of userId to damage dealt." }
+      },
+      "required": ["name", "maxHp", "currentHp", "spawnTime", "endTime", "status"]
+    },
+    "Territory": {
+      "title": "Territory",
+      "description": "Anime/Manga page controlled by a guild",
+      "type": "object",
+      "properties": {
+        "mediaId": { "type": "number" },
+        "mediaTitle": { "type": "string" },
+        "mediaCover": { "type": "string" },
+        "controllingGuildId": { "type": "string" },
+        "controllingGuildName": { "type": "string" },
+        "highestBid": { "type": "number" },
+        "lastBidAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["mediaId", "mediaTitle", "controllingGuildId", "controllingGuildName", "highestBid", "lastBidAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles"
+    },
+    "/guilds/{guildId}": {
+      "schema": { "$ref": "#/entities/Guild" },
+      "description": "Guilds"
+    },
+    "/worldBosses/{bossId}": {
+      "schema": { "$ref": "#/entities/WorldBoss" },
+      "description": "Active and past world bosses"
+    },
+    "/territories/{territoryId}": {
+      "schema": { "$ref": "#/entities/Territory" },
+      "description": "Territory Wars data"
+    }
+  }
+}

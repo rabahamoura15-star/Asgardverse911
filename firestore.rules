@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((request.auth.token.email == "amouramohamed609@gmail.com" && request.auth.token.email_verified == true) ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+    function hasRequiredFields(fields) { return request.resource.data.keys().hasAll(fields); }
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'xp', 'level', 'rank', 'coins', 'voidCrystals', 'abyssalDust', 'energy', 'lastLogin', 'nsfwEnabled', 'role', 'pityCounter']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             isValidOptionalString('displayName', 0, 100) &&
+             isValidOptionalString('email', 0, 200) &&
+             isValidOptionalString('photoURL', 0, 2000) &&
+             data.xp is number && data.xp >= 0 &&
+             data.level is number && data.level >= 1 &&
+             data.rank in ["E", "D", "C", "B", "A", "S", "SS", "SSS", "GOD", "X"] &&
+             data.coins is number && data.coins >= 0 &&
+             data.voidCrystals is number && data.voidCrystals >= 0 &&
+             data.abyssalDust is number && data.abyssalDust >= 0 &&
+             data.energy is number && data.energy >= 0 && data.energy <= 100 &&
+             (!('timeSpent' in data) || (data.timeSpent is number && data.timeSpent >= 0)) &&
+             isValidDateString(data.lastLogin) &&
+             data.nsfwEnabled is bool &&
+             data.role in ['admin', 'user'] &&
+             data.pityCounter is number && data.pityCounter >= 0;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    ((isOwner(userId) && request.resource.data.role == 'user' && request.resource.data.uid == request.auth.uid) || isAdmin());
+      
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    ((isOwner(userId) && 
+                      (!('role' in resource.data) ? request.resource.data.role == 'user' : request.resource.data.role == resource.data.role) && 
+                      (!('uid' in resource.data) ? request.resource.data.uid == request.auth.uid : request.resource.data.uid == resource.data.uid)
+                    ) || isAdmin());
+                    
+      allow delete: if isAdmin();
+    }
+
+    match /guilds/{guildId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.leaderId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.leaderId == request.auth.uid || 
+        isAdmin() ||
+        // Allow joining/leaving
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) && 
+         (request.resource.data.members.hasAll(resource.data.members) || resource.data.members.hasAll(request.resource.data.members))) ||
+        // Allow donating/refunding to gold pool (only increasing)
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['goldPool']) && request.resource.data.goldPool > resource.data.goldPool)
+      );
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.leaderId == request.auth.uid);
+    }
+
+    match /worldBosses/{bossId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /territories/{territoryId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+    
+    match /gacha_cards/{cardId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
+    }
+
+    match /market_listings/{listingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.sellerId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.sellerId == request.auth.uid);
+    }
+
+    match /global_chat/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+  }
+}
