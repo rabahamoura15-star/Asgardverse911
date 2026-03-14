@@ -130,15 +130,18 @@ export function Inventory() {
 
       const userRef = doc(db, 'users', profile.uid);
       
-      // Atomic update
-      await updateDoc(userRef, {
-        inventory: arrayRemove(card1, card2),
-        coins: increment(-mergeCost)
-      });
+      // Atomic update: modify the array in memory and write it back
+      const newInventory = [...(profile.inventory || [])];
+      const idx1 = newInventory.findIndex(c => c.id === card1.id);
+      if (idx1 !== -1) newInventory.splice(idx1, 1);
+      const idx2 = newInventory.findIndex(c => c.id === card2.id);
+      if (idx2 !== -1) newInventory.splice(idx2, 1);
       
-      // Add the merged card (needs to be separate because arrayUnion and arrayRemove on same field in one updateDoc is not allowed)
+      newInventory.push(mergedCard);
+
       await updateDoc(userRef, {
-        inventory: arrayUnion(mergedCard)
+        inventory: newInventory,
+        coins: increment(-mergeCost)
       });
 
       setSelectedGroup(null);

@@ -131,13 +131,13 @@ export const getMediaDetails = async (id: number, type: string) => {
 
 export const getRandomCharacter = async (bannerType: 'standard' | 'premium' | 'abyss' = 'standard') => {
   let sort = 'FAVOURITES_DESC';
-  let randomPage = Math.floor(Math.random() * 50) + 1;
+  let randomPage = Math.floor(Math.random() * 500) + 1; // Standard: wide variety
 
   if (bannerType === 'abyss') {
     // Only top characters
-    randomPage = Math.floor(Math.random() * 5) + 1;
+    randomPage = Math.floor(Math.random() * 10) + 1;
   } else if (bannerType === 'premium') {
-    randomPage = Math.floor(Math.random() * 20) + 1;
+    randomPage = Math.floor(Math.random() * 50) + 1;
   }
 
   const query = `
@@ -149,7 +149,11 @@ export const getRandomCharacter = async (bannerType: 'standard' | 'premium' | 'a
           image { large }
           favourites
           media(page: 1, perPage: 1) {
-            nodes { title { romaji } }
+            nodes { 
+              title { romaji } 
+              type
+              countryOfOrigin
+            }
           }
         }
       }

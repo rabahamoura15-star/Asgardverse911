@@ -85,18 +85,52 @@ export function Gacha() {
         color = 'text-gray-400 border-gray-400 shadow-[0_0_10px_rgba(156,163,175,0.2)]';
       }
 
-      const newCard = {
-        id: crypto.randomUUID(), // Unique ID for durability/merging
-        characterName: char.name.full,
-        mediaTitle: char.media.nodes[0]?.title.romaji || 'Unknown',
-        imageUrl: char.image.large,
-        rarity,
-        atk: Math.floor(Math.random() * 100 * statMultiplier) + 10,
-        def: Math.floor(Math.random() * 100 * statMultiplier) + 10,
-        spd: Math.floor(Math.random() * 100 * statMultiplier) + 10,
-        durability: 100, // New durability mechanic
-        mergeLevel: 0, // New merge mechanic
-      };
+      const mediaNode = char.media.nodes[0];
+      let mediaType = 'Anime';
+      if (mediaNode) {
+        if (mediaNode.type === 'MANGA') {
+          mediaType = mediaNode.countryOfOrigin === 'KR' ? 'Manhwa' : 'Manga';
+        }
+      }
+
+      const existingCardIndex = profile.inventory?.findIndex(
+        c => c.characterName === char.name.full && c.mediaTitle === (mediaNode?.title.romaji || 'Unknown') && c.rarity === rarity
+      );
+
+      let resultCard;
+      const newInventory = [...(profile.inventory || [])];
+
+      if (existingCardIndex !== undefined && existingCardIndex !== -1) {
+        // Duplicate found, increment mergeLevel and stats
+        const existingCard = newInventory[existingCardIndex];
+        const currentMergeLevel = existingCard.mergeLevel || 0;
+        
+        resultCard = {
+          ...existingCard,
+          atk: Math.floor(existingCard.atk * 1.15),
+          def: Math.floor(existingCard.def * 1.15),
+          spd: Math.floor(existingCard.spd * 1.15),
+          mergeLevel: currentMergeLevel + 1,
+          durability: 100
+        };
+        newInventory[existingCardIndex] = resultCard;
+      } else {
+        // New card
+        resultCard = {
+          id: crypto.randomUUID(),
+          characterName: char.name.full,
+          mediaTitle: mediaNode?.title.romaji || 'Unknown',
+          mediaType,
+          imageUrl: char.image.large,
+          rarity,
+          atk: Math.floor(Math.random() * 100 * statMultiplier) + 10,
+          def: Math.floor(Math.random() * 100 * statMultiplier) + 10,
+          spd: Math.floor(Math.random() * 100 * statMultiplier) + 10,
+          durability: 100,
+          mergeLevel: 0,
+        };
+        newInventory.push(resultCard);
+      }
 
       const now = new Date().toISOString();
       const hasDoubleXp = profile.activeBoosts?.double_xp && profile.activeBoosts.double_xp > now;
@@ -108,7 +142,7 @@ export function Gacha() {
         coins: increment(-activeBanner.cost),
         energy: increment(-activeBanner.energy),
         xp: increment(xpGained),
-        inventory: arrayUnion(newCard),
+        inventory: newInventory,
         pityCounter: newPity
       };
       
@@ -119,7 +153,7 @@ export function Gacha() {
       await updateDoc(userRef, updates);
 
       setTimeout(() => {
-        setResult({ ...newCard, color });
+        setResult({ ...resultCard, color });
         setPulling(false);
       }, 2000); // Fake animation delay
       
@@ -188,7 +222,8 @@ export function Gacha() {
             >
               <button
                 onClick={handlePull}
-                className="group relative px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl overflow-hidden transition-all"
+                disabled={pulling}
+                className="group relative px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl overflow-hidden transition-all disabled:opacity-50"
               >
                 <div className={`absolute inset-0 bg-gradient-to-r ${activeBanner.color} opacity-0 group-hover:opacity-20 transition-opacity`} />
                 <span className="relative font-black tracking-widest uppercase flex items-center gap-2">

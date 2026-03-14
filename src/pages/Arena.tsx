@@ -63,20 +63,41 @@ export function Arena() {
     }
   }, [profile]);
 
-  const calculatePower = (user: any) => {
-    let base = user?.basePower || 0;
-    if (!user?.inventory || user.inventory.length === 0) return base;
-    const sortedCards = [...user.inventory].sort((a, b) => {
+  const getTopCards = (user: any) => {
+    if (!user?.inventory || user.inventory.length === 0) return [];
+    return [...user.inventory].sort((a, b) => {
       const powerA = (a.atk || 0) + (a.def || 0) + (a.spd || 0);
       const powerB = (b.atk || 0) + (b.def || 0) + (b.spd || 0);
       return powerB - powerA;
-    });
-    const top3 = sortedCards.slice(0, 3);
+    }).slice(0, 3);
+  };
+
+  const getMajorityType = (cards: any[]) => {
+    if (cards.length === 0) return 'Anime';
+    const counts: Record<string, number> = {};
+    let maxCount = 0;
+    let majority = 'Anime';
+    for (const card of cards) {
+      const type = card.mediaType || 'Anime';
+      counts[type] = (counts[type] || 0) + 1;
+      if (counts[type] > maxCount) {
+        maxCount = counts[type];
+        majority = type;
+      }
+    }
+    return majority;
+  };
+
+  const calculatePower = (user: any) => {
+    let base = user?.basePower || 0;
+    const top3 = getTopCards(user);
     const cardsPower = top3.reduce((total, card) => total + (card.atk || 0) + (card.def || 0) + (card.spd || 0), 0);
     return base + cardsPower;
   };
 
   const myPower = calculatePower(profile);
+  const myTopCards = getTopCards(profile);
+  const myType = getMajorityType(myTopCards);
 
   const handleAttack = async (opponent: any) => {
     if (!profile) return;
@@ -90,14 +111,30 @@ export function Arena() {
 
     setTimeout(async () => {
       try {
-        const opponentPower = calculatePower(opponent);
+        let opponentPower = calculatePower(opponent);
+        const oppTopCards = getTopCards(opponent);
+        const oppType = getMajorityType(oppTopCards);
+        
+        let myEffectivePower = myPower;
+        let oppEffectivePower = opponentPower;
+
+        // Advantage: Manhwa > Anime > Manga > Manhwa (+20%)
+        if ((myType === 'Manhwa' && oppType === 'Anime') ||
+            (myType === 'Anime' && oppType === 'Manga') ||
+            (myType === 'Manga' && oppType === 'Manhwa')) {
+          myEffectivePower *= 1.2;
+        } else if ((oppType === 'Manhwa' && myType === 'Anime') ||
+                   (oppType === 'Anime' && myType === 'Manga') ||
+                   (oppType === 'Manga' && myType === 'Manhwa')) {
+          oppEffectivePower *= 1.2;
+        }
         
         // Win chance based on power difference
         let winChance = 0.5;
-        if (myPower > opponentPower) {
-          winChance = Math.min(0.9, 0.5 + ((myPower - opponentPower) / myPower) * 0.5);
-        } else if (opponentPower > myPower) {
-          winChance = Math.max(0.1, 0.5 - ((opponentPower - myPower) / opponentPower) * 0.5);
+        if (myEffectivePower > oppEffectivePower) {
+          winChance = Math.min(0.9, 0.5 + ((myEffectivePower - oppEffectivePower) / myEffectivePower) * 0.5);
+        } else if (oppEffectivePower > myEffectivePower) {
+          winChance = Math.max(0.1, 0.5 - ((oppEffectivePower - myEffectivePower) / oppEffectivePower) * 0.5);
         }
 
         const success = Math.random() < winChance;
@@ -269,7 +306,10 @@ export function Arena() {
         
         <div className="text-right bg-white/5 p-4 rounded-2xl border border-white/10">
           <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-1">Your Combat Power</p>
-          <p className="text-3xl font-black text-red-400 font-mono">{myPower.toLocaleString()}</p>
+          <div className="flex items-center gap-2 justify-end">
+            <span className="text-xs px-2 py-0.5 bg-black/50 rounded text-white/50 border border-white/10">{myType}</span>
+            <p className="text-3xl font-black text-red-400 font-mono">{myPower.toLocaleString()}</p>
+          </div>
         </div>
       </div>
 
@@ -358,7 +398,10 @@ export function Arena() {
 
                   <div className="flex justify-between items-center mb-6 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
                     <span className="text-xs text-white/50 uppercase font-bold tracking-widest">Threat Level</span>
-                    <span className={`text-sm font-black uppercase tracking-widest ${difficultyColor}`}>{difficultyText}</span>
+                    <div className="text-right">
+                      <span className={`block text-sm font-black uppercase tracking-widest ${difficultyColor}`}>{difficultyText}</span>
+                      <span className="text-[10px] text-white/40 uppercase font-mono">{getMajorityType(getTopCards(opponent))} Type</span>
+                    </div>
                   </div>
 
                   <button

@@ -4,8 +4,14 @@ import { MessageSquare, X, Send, Bot, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Markdown from 'react-markdown';
 
-// Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+// We will initialize the AI instance per request to allow random key selection
+const getAiInstance = () => {
+  const keysString = process.env.GEMINI_API_KEY || '';
+  const keys = keysString.split(',').map(k => k.trim()).filter(k => k);
+  if (keys.length === 0) return new GoogleGenAI({ apiKey: '' });
+  const randomKey = keys[Math.floor(Math.random() * keys.length)];
+  return new GoogleGenAI({ apiKey: randomKey });
+};
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,6 +39,7 @@ export function Chatbot() {
     setIsLoading(true);
 
     try {
+      const ai = getAiInstance();
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `User: ${userText}`,

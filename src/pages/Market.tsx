@@ -47,7 +47,30 @@ export function Market() {
   const [isBlackMarketOpen, setIsBlackMarketOpen] = useState(false);
   const [timeUntilClose, setTimeUntilClose] = useState('');
 
+  const [dailyItems, setDailyItems] = useState<typeof PREMIUM_ITEMS>([]);
+
   useEffect(() => {
+    const getDailyItems = () => {
+      const today = new Date().toISOString().split('T')[0];
+      let hash = 0;
+      for (let i = 0; i < today.length; i++) {
+        hash = ((hash << 5) - hash) + today.charCodeAt(i);
+        hash |= 0;
+      }
+      
+      const numItems = 3;
+      const selected = [];
+      const available = [...PREMIUM_ITEMS];
+      
+      for (let i = 0; i < numItems; i++) {
+        const index = Math.abs(hash + i * 17) % available.length;
+        selected.push(available[index]);
+        available.splice(index, 1);
+      }
+      return selected;
+    };
+    setDailyItems(getDailyItems());
+
     const checkBlackMarket = () => {
       const usDate = new Date(new Date().toLocaleString("en-US", {timeZone: "America/New_York"}));
       const hour = usDate.getHours();
@@ -317,13 +340,18 @@ export function Market() {
         </div>
       )}
 
-      {/* Premium Items Section */}
+      {/* Premium Items Section (Daily Shop) */}
       <div className="mb-12">
-        <h2 className="text-2xl font-black tracking-widest uppercase mb-6 flex items-center gap-2">
-          <Star className="text-yellow-400" /> Premium Artifacts
-        </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-black tracking-widest uppercase flex items-center gap-2">
+            <Star className="text-yellow-400" /> Daily Shop
+          </h2>
+          <div className="text-sm font-mono text-white/50 bg-white/5 px-3 py-1 rounded-lg border border-white/10">
+            Refreshes in 24h
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {PREMIUM_ITEMS.map(item => (
+          {dailyItems.map(item => (
             <div key={item.id} className="bg-black/40 border border-white/10 rounded-2xl p-6 relative overflow-hidden group">
               <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-5 group-hover:opacity-10 transition-opacity`} />
               <div className="text-4xl mb-4">{item.icon}</div>

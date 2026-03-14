@@ -63,7 +63,9 @@ service cloud.firestore {
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
                     ((isOwner(userId) && 
                       (!('role' in resource.data) ? request.resource.data.role == 'user' : request.resource.data.role == resource.data.role) && 
-                      (!('uid' in resource.data) ? request.resource.data.uid == request.auth.uid : request.resource.data.uid == resource.data.uid)
+                      (!('uid' in resource.data) ? request.resource.data.uid == request.auth.uid : request.resource.data.uid == resource.data.uid) &&
+                      (request.resource.data.coins <= resource.data.coins + 500000) &&
+                      (request.resource.data.level <= resource.data.level + 5)
                     ) || isAdmin());
                     
       allow delete: if isAdmin();

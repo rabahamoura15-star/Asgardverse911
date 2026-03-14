@@ -7,7 +7,7 @@ import {
   signInWithEmailAndPassword, 
   sendEmailVerification,
 } from 'firebase/auth';
-import { X, Mail, Lock, LogIn, UserPlus } from 'lucide-react';
+import { X, Mail, Lock, LogIn, UserPlus, AlertTriangle } from 'lucide-react';
 
 export function AuthModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -136,6 +136,15 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                   {isLogin ? <LogIn size={18} /> : <UserPlus size={18} />}
                   {loading ? 'PROCESSING...' : isLogin ? 'LOGIN' : 'REGISTER'}
                 </button>
+
+                {!isLogin && (
+                  <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-start gap-3">
+                    <AlertTriangle className="text-yellow-500 shrink-0 mt-0.5" size={18} />
+                    <p className="text-yellow-500 text-sm leading-relaxed">
+                      Note: As our platform is new, the verification email might land in your Spam/Junk folder. Please check there!
+                    </p>
+                  </div>
+                )}
               </form>
 
               <div className="relative flex items-center py-2">
