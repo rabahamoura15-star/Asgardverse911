@@ -57,16 +57,10 @@ export function Inventory() {
         inventory: arrayRemove(sellingCard)
       });
 
-      const cardRef = await addDoc(collection(db, 'gacha_cards'), {
-        ...sellingCard,
-        ownerId: profile.uid,
-        createdAt: new Date().toISOString()
-      });
-
       await addDoc(collection(db, 'market_listings'), {
-        cardId: cardRef.id,
         sellerId: profile.uid,
         sellerName: profile.nickname || profile.displayName,
+        card: sellingCard,
         price: sellPrice,
         createdAt: new Date().toISOString()
       });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { collection, query, orderBy, getDocs, doc, updateDoc, increment, deleteDoc, getDoc, arrayUnion, setDoc, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, updateDoc, increment, deleteDoc, getDoc, arrayUnion, setDoc, addDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useUserStore } from '../store/useUserStore';
 import { ShoppingCart, Flame, Clock, Star, Tag, Sparkles } from 'lucide-react';
@@ -285,19 +285,26 @@ export function Market() {
       const tax = Math.floor(listing.price * 0.3);
       const sellerEarns = listing.price - tax;
 
+      const batch = writeBatch(db);
+
       // Deduct from buyer and add card to inventory
-      await updateDoc(doc(db, 'users', profile.uid), {
+      const buyerRef = doc(db, 'users', profile.uid);
+      batch.update(buyerRef, {
         coins: increment(-listing.price),
         inventory: arrayUnion(listing.card)
       });
 
       // Add to seller
-      await updateDoc(doc(db, 'users', listing.sellerId), {
+      const sellerRef = doc(db, 'users', listing.sellerId);
+      batch.update(sellerRef, {
         coins: increment(sellerEarns)
       });
 
       // Delete listing
-      await deleteDoc(doc(db, 'market_listings', listing.id));
+      const listingRef = doc(db, 'market_listings', listing.id);
+      batch.delete(listingRef);
+
+      await batch.commit();
 
       fetchListings();
       alert('Card purchased successfully!');

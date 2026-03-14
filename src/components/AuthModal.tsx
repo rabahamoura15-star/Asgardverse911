@@ -23,7 +23,13 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
       await signInWithPopup(auth, googleProvider);
       onClose();
     } catch (err: any) {
-      setError(err.message);
+      if (err.code === 'auth/unauthorized-domain') {
+        setError('Google Sign-In failed: This domain is not authorized. The site owner must add this domain (asgardverse911.asgardverse.workers.dev) to the Firebase Console -> Authentication -> Settings -> Authorized domains.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Google Sign-In is DISABLED in your Firebase Console. Go to Authentication -> Sign-in method -> Add new provider -> Google -> Enable -> Save.');
+      } else {
+        setError(err.message);
+      }
       setLoading(false);
     }
   };
@@ -51,7 +57,11 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
         setIsLogin(true);
       }
     } catch (err: any) {
-      setError(err.message);
+      if (err.code === 'auth/operation-not-allowed') {
+        setError('Email/Password Sign-In is DISABLED in your Firebase Console. Go to Authentication -> Sign-in method -> Add new provider -> Email/Password -> Enable -> Save.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
