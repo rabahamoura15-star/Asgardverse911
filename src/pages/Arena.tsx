@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { collection, query, orderBy, limit, getDocs, doc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, updateDoc, increment, arrayUnion, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useUserStore } from '../store/useUserStore';
 import { Swords, Shield, Trophy, Target, AlertTriangle, Crosshair, Crown } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
+import { translations } from '../translations';
 
 export function Arena() {
-  const { profile, trackArenaAttack } = useUserStore();
+  const { profile, trackArenaAttack, language } = useUserStore();
+  const t = translations[language as keyof typeof translations] || translations.en;
   const [opponents, setOpponents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [battleStatus, setBattleStatus] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
@@ -41,15 +43,17 @@ export function Arena() {
       if (!snapshot.empty) {
         setWorldBoss({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
       } else {
-        // Create a mock boss for demo purposes if none exists
-        setWorldBoss({
-          id: 'mock-boss',
+        // Create a real boss in Firestore if none exists
+        const bossData = {
           name: 'The Abyssal Leviathan',
           maxHp: 10000000,
-          currentHp: 8500000,
+          currentHp: 10000000,
           status: 'active',
-          endTime: new Date(Date.now() + 86400000).toISOString()
-        });
+          endTime: new Date(Date.now() + 86400000 * 7).toISOString(), // 7 days
+          createdAt: new Date().toISOString()
+        };
+        const bossRef = await addDoc(collection(db, 'worldBosses'), bossData);
+        setWorldBoss({ id: bossRef.id, ...bossData });
       }
     } catch (error) {
       console.error("Failed to fetch world boss", error);
@@ -102,12 +106,12 @@ export function Arena() {
   const handleAttack = async (opponent: any) => {
     if (!profile) return;
     if (profile.energy < 30) {
-      setBattleStatus({ message: "Not enough energy. Requires 30 E.", type: 'error' });
+      setBattleStatus({ message: t.notEnoughEnergyArena || "Not enough energy. Requires 30 E.", type: 'error' });
       return;
     }
 
     setIsFighting(true);
-    setBattleStatus({ message: `Engaging ${opponent.nickname || opponent.displayName}...`, type: 'info' });
+    setBattleStatus({ message: `${t.engaging || 'Engaging'} ${opponent.nickname || opponent.displayName}...`, type: 'info' });
 
     setTimeout(async () => {
       try {
@@ -140,36 +144,35 @@ export function Arena() {
         const success = Math.random() < winChance;
         const userRef = doc(db, 'users', profile.uid);
         
-        // Track attack for daily quest
-        await trackArenaAttack();
-
         if (success) {
           const rewardGold = Math.floor(Math.random() * 1500) + 500;
           const rewardXp = 250;
           await updateDoc(userRef, {
             coins: increment(rewardGold),
             xp: increment(rewardXp),
-            energy: increment(-30)
+            energy: increment(-30),
+            todayArenaAttacks: increment(1)
           });
           setBattleStatus({ 
-            message: `VICTORY! You defeated ${opponent.nickname || opponent.displayName}. Gained ${rewardGold} G and ${rewardXp} XP.`, 
+            message: `${t.victory || 'VICTORY!'} ${t.youDefeated || 'You defeated'} ${opponent.nickname || opponent.displayName}. ${t.gained || 'Gained'} ${rewardGold} G ${t.and || 'and'} ${rewardXp} XP.`, 
             type: 'success' 
           });
         } else {
           const penaltyGold = Math.floor(Math.random() * 3000) + 2000;
           await updateDoc(userRef, {
             coins: increment(-penaltyGold),
-            energy: increment(-30)
+            energy: increment(-30),
+            todayArenaAttacks: increment(1)
           });
           setBattleStatus({ 
-            message: `DEFEAT! You were crushed by ${opponent.nickname || opponent.displayName}. Lost ${penaltyGold} G.`, 
+            message: `${t.defeat || 'DEFEAT!'} ${t.youWereCrushedBy || 'You were crushed by'} ${opponent.nickname || opponent.displayName}. ${t.lost || 'Lost'} ${penaltyGold} G.`, 
             type: 'error' 
           });
         }
         fetchOpponents(); // Refresh opponents
       } catch (error) {
         console.error("Battle failed", error);
-        setBattleStatus({ message: "A system error occurred during combat.", type: 'error' });
+        setBattleStatus({ message: t.systemErrorCombat || "A system error occurred during combat.", type: 'error' });
       } finally {
         setIsFighting(false);
       }
@@ -179,12 +182,12 @@ export function Arena() {
   const handleTournamentJoin = async () => {
     if (!profile) return;
     if (profile.coins < 250000) {
-      setBattleStatus({ message: "Not enough Gold to enter the Tournament. Requires 250,000 G.", type: 'error' });
+      setBattleStatus({ message: t.notEnoughGoldTournament || "Not enough Gold to enter the Tournament. Requires 250,000 G.", type: 'error' });
       return;
     }
     
     setIsFighting(true);
-    setBattleStatus({ message: "Entering the Grand Tournament...", type: 'info' });
+    setBattleStatus({ message: t.enteringTournament || "Entering the Grand Tournament...", type: 'info' });
 
     setTimeout(async () => {
       try {
@@ -204,7 +207,7 @@ export function Arena() {
             unlockedBanners: arrayUnion('tournament_champion')
           });
           setBattleStatus({ 
-            message: `CHAMPION! You won the Grand Tournament! Gained ${rewardGold.toLocaleString()} G, ${rewardXp.toLocaleString()} XP, and a new Banner!`, 
+            message: `${t.champion || 'CHAMPION!'} ${t.youWonTournament || 'You won the Grand Tournament!'} ${t.gained || 'Gained'} ${rewardGold.toLocaleString()} G, ${rewardXp.toLocaleString()} XP, ${t.andNewBanner || 'and a new Banner!'}`, 
             type: 'success' 
           });
         } else {
@@ -212,13 +215,13 @@ export function Arena() {
             coins: increment(-250000)
           });
           setBattleStatus({ 
-            message: `ELIMINATED! You were knocked out of the Tournament. Lost 250,000 G entry fee.`, 
+            message: `${t.eliminated || 'ELIMINATED!'} ${t.knockedOutTournament || 'You were knocked out of the Tournament. Lost 250,000 G entry fee.'}`, 
             type: 'error' 
           });
         }
       } catch (error) {
         console.error("Tournament failed", error);
-        setBattleStatus({ message: "A system error occurred during the tournament.", type: 'error' });
+        setBattleStatus({ message: t.systemErrorTournament || "A system error occurred during the tournament.", type: 'error' });
       } finally {
         setIsFighting(false);
       }
@@ -228,30 +231,38 @@ export function Arena() {
   const handleWorldBossAttack = async () => {
     if (!profile || !worldBoss) return;
     if (profile.energy < 50) {
-      setBattleStatus({ message: "Not enough energy. Requires 50 E.", type: 'error' });
+      setBattleStatus({ message: t.notEnoughEnergyBoss || "Not enough energy. Requires 50 E.", type: 'error' });
       return;
     }
 
     setIsFighting(true);
-    setBattleStatus({ message: `Attacking ${worldBoss.name}...`, type: 'info' });
+    setBattleStatus({ message: `${t.attacking || 'Attacking'} ${worldBoss.name}...`, type: 'info' });
 
     setTimeout(async () => {
       try {
         const damage = Math.floor(myPower * (0.8 + Math.random() * 0.4)); // 80% to 120% of power
         const userRef = doc(db, 'users', profile.uid);
+        const bossRef = doc(db, 'worldBosses', worldBoss.id);
         
-        // In a real app, we'd update the worldBoss document atomically with a transaction
-        // For this prototype, we'll just update the user's damage and give a small immediate reward
         const rewardGold = Math.floor(damage / 100);
         
-        await updateDoc(userRef, {
+        const { writeBatch } = await import('firebase/firestore');
+        const batch = writeBatch(db);
+        
+        batch.update(userRef, {
           worldBossDamage: increment(damage),
           coins: increment(rewardGold),
           energy: increment(-50)
         });
+        
+        batch.update(bossRef, {
+          currentHp: increment(-damage)
+        });
+
+        await batch.commit();
 
         setBattleStatus({ 
-          message: `You dealt ${damage.toLocaleString()} damage to ${worldBoss.name}! Gained ${rewardGold.toLocaleString()} G.`, 
+          message: `${t.youDealt || 'You dealt'} ${damage.toLocaleString()} ${t.damageTo || 'damage to'} ${worldBoss.name}! ${t.gained || 'Gained'} ${rewardGold.toLocaleString()} G.`, 
           type: 'success' 
         });
         
@@ -262,7 +273,7 @@ export function Arena() {
         }));
       } catch (error) {
         console.error("World Boss attack failed", error);
-        setBattleStatus({ message: "A system error occurred during combat.", type: 'error' });
+        setBattleStatus({ message: t.systemErrorCombat || "A system error occurred during combat.", type: 'error' });
       } finally {
         setIsFighting(false);
       }
@@ -298,16 +309,16 @@ export function Arena() {
           </div>
           <div>
             <h1 className="text-4xl font-black tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-400">
-              The Arena
+              {t.theArena || 'The Arena'}
             </h1>
-            <p className="text-white/50 font-mono text-sm mt-1">Hunt other players. Steal their glory.</p>
+            <p className="text-white/50 font-mono text-sm mt-1">{t.arenaDesc || 'Hunt other players. Steal their glory.'}</p>
           </div>
         </div>
         
         <div className="text-right bg-white/5 p-4 rounded-2xl border border-white/10">
-          <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-1">Your Combat Power</p>
+          <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-1">{t.yourCombatPower || 'Your Combat Power'}</p>
           <div className="flex items-center gap-2 justify-end">
-            <span className="text-xs px-2 py-0.5 bg-black/50 rounded text-white/50 border border-white/10">{myType}</span>
+            <span className="text-xs px-2 py-0.5 bg-black/50 rounded text-white/50 border border-white/10">{t[myType] || myType}</span>
             <p className="text-3xl font-black text-red-400 font-mono">{myPower.toLocaleString()}</p>
           </div>
         </div>
@@ -322,7 +333,7 @@ export function Arena() {
               : 'bg-white/5 text-white/50 hover:bg-white/10 border border-transparent'
           }`}
         >
-          PvP Battles
+          {t.pvpBattles || 'PvP Battles'}
         </button>
         <button
           onClick={() => setActiveTab('tournament')}
@@ -332,7 +343,7 @@ export function Arena() {
               : 'bg-white/5 text-white/50 hover:bg-white/10 border border-transparent'
           }`}
         >
-          <Crown size={18} /> Grand Tournament
+          <Crown size={18} /> {t.grandTournament || 'Grand Tournament'}
         </button>
         <button
           onClick={() => setActiveTab('worldboss')}
@@ -342,7 +353,7 @@ export function Arena() {
               : 'bg-white/5 text-white/50 hover:bg-white/10 border border-transparent'
           }`}
         >
-          <AlertTriangle size={18} /> World Boss
+          <AlertTriangle size={18} /> {t.worldBoss || 'World Boss'}
         </button>
       </div>
 
@@ -353,14 +364,14 @@ export function Arena() {
               const opponentPower = calculatePower(opponent);
               const powerDiff = myPower - opponentPower;
               let difficultyColor = 'text-yellow-400';
-              let difficultyText = 'Even Match';
+              let difficultyText = t.evenMatch || 'Even Match';
               
               if (powerDiff > 5000) {
                 difficultyColor = 'text-green-400';
-                difficultyText = 'Easy Target';
+                difficultyText = t.easyTarget || 'Easy Target';
               } else if (powerDiff < -5000) {
                 difficultyColor = 'text-red-500';
-                difficultyText = 'Deadly';
+                difficultyText = t.deadly || 'Deadly';
               }
 
               return (
@@ -388,19 +399,19 @@ export function Arena() {
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-1">Est. Power</p>
+                      <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-1">{t.estPower || 'Est. Power'}</p>
                       <p className="text-xl font-black text-white font-mono">{opponentPower.toLocaleString()}</p>
                     </div>
                   </div>
 
                   <h3 className="text-xl font-bold text-white mb-1 truncate">{opponent.nickname || opponent.displayName}</h3>
-                  <p className="text-sm text-white/50 font-mono mb-6">Level {opponent.level || 1} • {opponent.rank || 'F'} Rank</p>
+                  <p className="text-sm text-white/50 font-mono mb-6">{t.level || 'Level'} {opponent.level || 1} • {opponent.rank || 'F'} {t.rank || 'Rank'}</p>
 
                   <div className="flex justify-between items-center mb-6 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-                    <span className="text-xs text-white/50 uppercase font-bold tracking-widest">Threat Level</span>
+                    <span className="text-xs text-white/50 uppercase font-bold tracking-widest">{t.threatLevel || 'Threat Level'}</span>
                     <div className="text-right">
                       <span className={`block text-sm font-black uppercase tracking-widest ${difficultyColor}`}>{difficultyText}</span>
-                      <span className="text-[10px] text-white/40 uppercase font-mono">{getMajorityType(getTopCards(opponent))} Type</span>
+                      <span className="text-[10px] text-white/40 uppercase font-mono">{t[getMajorityType(getTopCards(opponent))] || getMajorityType(getTopCards(opponent))} {t.type || 'Type'}</span>
                     </div>
                   </div>
 
@@ -414,7 +425,7 @@ export function Arena() {
                     }`}
                   >
                     <Swords size={18} />
-                    {isFighting ? 'Battling...' : 'Attack (30 E)'}
+                    {isFighting ? (t.battling || 'Battling...') : (t.attack30E || 'Attack (30 E)')}
                   </button>
                 </motion.div>
               );
@@ -427,7 +438,7 @@ export function Arena() {
               disabled={loading || isFighting}
               className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl font-bold uppercase tracking-widest transition-colors text-sm"
             >
-              Find New Opponents
+              {t.findNewOpponents || 'Find New Opponents'}
             </button>
           </div>
         </>
@@ -440,20 +451,20 @@ export function Arena() {
           <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/5 to-transparent pointer-events-none" />
           
           <Crown className="w-24 h-24 text-yellow-500 mx-auto mb-6 opacity-80" />
-          <h2 className="text-3xl font-black uppercase tracking-widest text-yellow-400 mb-4">The Grand Tournament</h2>
+          <h2 className="text-3xl font-black uppercase tracking-widest text-yellow-400 mb-4">{t.theGrandTournament || 'The Grand Tournament'}</h2>
           <p className="text-white/60 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Enter the weekly Grand Tournament to prove your worth. The entry fee is steep, and the competition is fierce. Only the strongest will survive to claim the grand prize and the exclusive Champion's Banner.
+            {t.tournamentDesc || 'Enter the weekly Grand Tournament to prove your worth. The entry fee is steep, and the competition is fierce. Only the strongest will survive to claim the grand prize and the exclusive Champion\'s Banner.'}
           </p>
 
           <div className="flex justify-center gap-8 mb-12">
             <div className="bg-white/5 p-6 rounded-2xl border border-white/10 min-w-[200px]">
-              <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-2">Entry Fee</p>
+              <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-2">{t.entryFee || 'Entry Fee'}</p>
               <p className="text-2xl font-black text-red-400 font-mono">250,000 G</p>
             </div>
             <div className="bg-white/5 p-6 rounded-2xl border border-white/10 min-w-[200px]">
-              <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-2">Grand Prize</p>
+              <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-2">{t.grandPrize || 'Grand Prize'}</p>
               <p className="text-2xl font-black text-yellow-400 font-mono">1,000,000 G</p>
-              <p className="text-sm text-purple-400 font-bold mt-1">+ Exclusive Banner</p>
+              <p className="text-sm text-purple-400 font-bold mt-1">+ {t.exclusiveBanner || 'Exclusive Banner'}</p>
             </div>
           </div>
 
@@ -466,7 +477,7 @@ export function Arena() {
               'bg-gradient-to-r from-yellow-600 to-orange-500 hover:from-yellow-500 hover:to-orange-400 text-white shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:shadow-[0_0_50px_rgba(234,179,8,0.5)]'
             }`}
           >
-            {isFighting ? 'In Tournament...' : 'Enter Tournament'}
+            {isFighting ? (t.inTournament || 'In Tournament...') : (t.enterTournament || 'Enter Tournament')}
           </button>
         </motion.div>
       ) : (
@@ -478,15 +489,15 @@ export function Arena() {
           <div className="absolute inset-0 bg-gradient-to-b from-purple-500/5 to-transparent pointer-events-none" />
           
           <AlertTriangle className="w-24 h-24 text-purple-500 mx-auto mb-6 opacity-80" />
-          <h2 className="text-3xl font-black uppercase tracking-widest text-purple-400 mb-4">{worldBoss?.name || 'Unknown Calamity'}</h2>
+          <h2 className="text-3xl font-black uppercase tracking-widest text-purple-400 mb-4">{worldBoss?.name || (t.unknownCalamity || 'Unknown Calamity')}</h2>
           <p className="text-white/60 max-w-2xl mx-auto mb-8 leading-relaxed">
-            A Global Calamity has appeared. All players must unite to defeat it before the timer expires. Failure will result in a server-wide penalty.
+            {t.worldBossDesc || 'A Global Calamity has appeared. All players must unite to defeat it before the timer expires. Failure will result in a server-wide penalty.'}
           </p>
 
           {worldBoss && (
             <div className="max-w-3xl mx-auto mb-12">
               <div className="flex justify-between text-sm font-bold uppercase tracking-widest text-white/70 mb-2">
-                <span>Boss HP</span>
+                <span>{t.bossHp || 'Boss HP'}</span>
                 <span className="font-mono text-purple-400">{worldBoss.currentHp.toLocaleString()} / {worldBoss.maxHp.toLocaleString()}</span>
               </div>
               <div className="h-6 bg-black/50 rounded-full border border-white/10 overflow-hidden relative">
@@ -496,19 +507,19 @@ export function Arena() {
                 />
               </div>
               <div className="mt-4 text-sm text-white/50 font-mono">
-                Time Remaining: {Math.max(0, Math.floor((new Date(worldBoss.endTime).getTime() - Date.now()) / (1000 * 60 * 60)))} hours
+                {t.timeRemaining || 'Time Remaining'}: {Math.max(0, Math.floor((new Date(worldBoss.endTime).getTime() - Date.now()) / (1000 * 60 * 60)))} {t.hours || 'hours'}
               </div>
             </div>
           )}
 
           <div className="flex justify-center gap-8 mb-12">
             <div className="bg-white/5 p-6 rounded-2xl border border-white/10 min-w-[200px]">
-              <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-2">Your Damage</p>
+              <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-2">{t.yourDamage || 'Your Damage'}</p>
               <p className="text-2xl font-black text-cyan-400 font-mono">{(profile?.worldBossDamage || 0).toLocaleString()}</p>
             </div>
             <div className="bg-white/5 p-6 rounded-2xl border border-white/10 min-w-[200px]">
-              <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-2">Participation Reward</p>
-              <p className="text-2xl font-black text-purple-400 font-mono">Void Crystals</p>
+              <p className="text-xs text-white/50 font-bold uppercase tracking-widest mb-2">{t.participationReward || 'Participation Reward'}</p>
+              <p className="text-2xl font-black text-purple-400 font-mono">{t.voidCrystals || 'Void Crystals'}</p>
             </div>
           </div>
 
@@ -521,7 +532,7 @@ export function Arena() {
               'bg-gradient-to-r from-purple-600 to-red-600 hover:from-purple-500 hover:to-red-500 text-white shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:shadow-[0_0_50px_rgba(168,85,247,0.5)]'
             }`}
           >
-            {isFighting ? 'Attacking...' : 'Attack Boss (50 E)'}
+            {isFighting ? (t.attacking || 'Attacking...') : (t.attackBoss50E || 'Attack Boss (50 E)')}
           </button>
         </motion.div>
       )}

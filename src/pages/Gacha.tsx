@@ -5,13 +5,15 @@ import { doc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
 import { getRandomCharacter } from '../services/api';
 import { Sparkles, Zap, Star } from 'lucide-react';
+import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 import { translations } from '../translations';
+import { InterstitialAd } from '../components/InterstitialAd';
 
 const BANNERS = [
-  { id: 'standard', name: 'Standard Banner', cost: 10000, energy: 25, color: 'from-blue-500 to-cyan-400', border: 'border-cyan-400' },
-  { id: 'premium', name: 'Premium Banner', cost: 50000, energy: 50, color: 'from-purple-500 to-pink-500', border: 'border-purple-400' },
-  { id: 'abyss', name: 'Abyss Banner', cost: 250000, energy: 100, color: 'from-red-600 to-orange-500', border: 'border-red-500' },
-  { id: 'void', name: 'Void Banner', cost: 1000000, energy: 200, color: 'from-indigo-900 to-black', border: 'border-indigo-500', requiresKey: true },
+  { id: 'standard', name: 'standardBanner', cost: 15000, energy: 25, color: 'from-blue-500 to-cyan-400', border: 'border-cyan-400' },
+  { id: 'premium', name: 'premiumBanner', cost: 75000, energy: 50, color: 'from-purple-500 to-pink-500', border: 'border-purple-400' },
+  { id: 'abyss', name: 'abyssBanner', cost: 350000, energy: 100, color: 'from-red-600 to-orange-500', border: 'border-red-500' },
+  { id: 'void', name: 'voidBanner', cost: 1500000, energy: 200, color: 'from-indigo-900 to-black', border: 'border-indigo-500', requiresKey: true },
 ];
 
 export function Gacha() {
@@ -21,11 +23,26 @@ export function Gacha() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
   const [activeBanner, setActiveBanner] = useState(BANNERS[0]);
+  const [isAdOpen, setIsAdOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
-    const handlePull = async () => {
+  const handleAdClose = () => {
+    setIsAdOpen(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
+  };
+
+  const handlePullClick = () => {
+    setPendingAction(() => handlePull);
+    setIsAdOpen(true);
+  };
+
+  const handlePull = async () => {
     if (!profile) return;
     if (activeBanner.requiresKey && !profile.hasVoidKey) {
-      setError('Requires Void Key');
+      setError(t.requiresVoidKey || 'Requires Void Key');
       return;
     }
     if (profile.coins < activeBanner.cost) {
@@ -58,7 +75,7 @@ export function Gacha() {
       let epicChance = activeBanner.id === 'void' ? 15 : activeBanner.id === 'abyss' ? 5 : activeBanner.id === 'premium' ? 1.5 : 0.5;
       let rareChance = activeBanner.id === 'void' ? 30 : activeBanner.id === 'abyss' ? 15 : activeBanner.id === 'premium' ? 5 : 2;
       
-      const currentPity = profile.pityCounter || 0;
+      const currentPity = profile.pityCounters?.[activeBanner.id] || 0;
       let newPity = currentPity + 1;
       
       // Soft Pity: Increase SSR chance significantly after 70 pulls
@@ -143,7 +160,7 @@ export function Gacha() {
         energy: increment(-activeBanner.energy),
         xp: increment(xpGained),
         inventory: newInventory,
-        pityCounter: newPity
+        [`pityCounters.${activeBanner.id}`]: newPity
       };
       
       if (activeBanner.requiresKey) {
@@ -158,7 +175,7 @@ export function Gacha() {
       }, 2000); // Fake animation delay
       
     } catch (err) {
-      console.error(err);
+      handleFirestoreError(err, OperationType.WRITE, 'users');
       setError(t.failedPull);
       setPulling(false);
     }
@@ -186,7 +203,7 @@ export function Gacha() {
                   : 'bg-black/50 border-white/10 text-white/50 hover:bg-white/5 hover:text-white'
               }`}
             >
-              {banner.name}
+              {t[banner.name] || banner.name}
             </button>
           ))}
         </div>
@@ -199,7 +216,7 @@ export function Gacha() {
             {t.cost}: {activeBanner.energy} E
           </span>
           <span className="text-purple-400 bg-purple-400/10 px-4 py-2 rounded-full border border-purple-400/20">
-            Pity: {profile?.pityCounters?.[activeBanner.id] || 0}/200
+            {t.pity || 'Pity'}: {profile?.pityCounters?.[activeBanner.id] || 0}/200
           </span>
         </div>
       </div>
@@ -221,7 +238,7 @@ export function Gacha() {
               className={`w-full h-full bg-black/50 border-2 border-dashed ${activeBanner.border} rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-[0_0_30px_rgba(0,0,0,0.5)]`}
             >
               <button
-                onClick={handlePull}
+                onClick={handlePullClick}
                 disabled={pulling}
                 className="group relative px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl overflow-hidden transition-all disabled:opacity-50"
               >
@@ -309,6 +326,8 @@ export function Gacha() {
           {t.summonAgain}
         </motion.button>
       )}
+
+      <InterstitialAd isOpen={isAdOpen} onClose={handleAdClose} />
     </div>
   );
 }

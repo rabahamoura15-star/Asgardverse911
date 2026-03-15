@@ -22,7 +22,7 @@ export interface UserProfile {
   nsfwEnabled: boolean;
   role: 'admin' | 'user';
   inventory?: any[];
-  pityCounter: number;
+  pityCounters?: Record<string, number>;
   lastTaxTime?: string;
   protectionWardUntil?: string;
   abyssFloor?: number;
@@ -46,14 +46,16 @@ export interface UserProfile {
   dailyQuestDate?: string;
   trailersWatched?: number;
   mediaViewedCount?: number;
+  manhwaViewedCount?: number;
   searchPerformed?: boolean;
   marketVisited?: boolean;
   gachaPullsToday?: number;
   todayArenaAttacks?: number;
   todayGoldSpent?: number;
   dailyActiveMinutes?: number;
+  weeklyTimeSpent?: number;
   lastActive?: string;
-  pityCounters?: Record<string, number>;
+  mediaLastInteraction?: Record<string, string>;
 }
 
 interface UserState {
@@ -65,10 +67,11 @@ interface UserState {
   setIsLoading: (loading: boolean) => void;
   language: Language;
   setLanguage: (lang: Language) => void;
-  trackAction: (action: 'trailer' | 'view' | 'search' | 'market' | 'gacha') => Promise<void>;
+  trackAction: (action: 'trailer' | 'view' | 'search' | 'market' | 'gacha' | 'manhwa') => Promise<void>;
   trackArenaAttack: () => Promise<void>;
   trackGoldSpent: (amount: number) => Promise<void>;
   updateActiveMinutes: () => Promise<void>;
+  updateMediaInteraction: (mediaId: string) => Promise<void>;
 }
 
 export const useUserStore = create<UserState>((set, get) => ({
@@ -95,6 +98,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       update.completedDailyQuests = [];
       update.trailersWatched = 0;
       update.mediaViewedCount = 0;
+      update.manhwaViewedCount = 0;
       update.searchPerformed = false;
       update.marketVisited = false;
       update.gachaPullsToday = 0;
@@ -109,6 +113,9 @@ export const useUserStore = create<UserState>((set, get) => ({
         break;
       case 'view':
         update.mediaViewedCount = isNewDay ? 1 : increment(1);
+        break;
+      case 'manhwa':
+        update.manhwaViewedCount = isNewDay ? 1 : increment(1);
         break;
       case 'search':
         update.searchPerformed = true;
@@ -134,6 +141,7 @@ export const useUserStore = create<UserState>((set, get) => ({
             completedDailyQuests: isNewDay ? [] : p.completedDailyQuests,
             trailersWatched: action === 'trailer' ? (isNewDay ? 1 : (p.trailersWatched || 0) + 1) : (isNewDay ? 0 : p.trailersWatched),
             mediaViewedCount: action === 'view' ? (isNewDay ? 1 : (p.mediaViewedCount || 0) + 1) : (isNewDay ? 0 : p.mediaViewedCount),
+            manhwaViewedCount: action === 'manhwa' ? (isNewDay ? 1 : (p.manhwaViewedCount || 0) + 1) : (isNewDay ? 0 : p.manhwaViewedCount),
             searchPerformed: action === 'search' ? true : (isNewDay ? false : p.searchPerformed),
             marketVisited: action === 'market' ? true : (isNewDay ? false : p.marketVisited),
             gachaPullsToday: action === 'gacha' ? (isNewDay ? 1 : (p.gachaPullsToday || 0) + 1) : (isNewDay ? 0 : p.gachaPullsToday),
@@ -177,14 +185,31 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       await updateDoc(userRef, { 
         dailyActiveMinutes: increment(1),
+        weeklyTimeSpent: increment(1),
+        timeSpent: increment(1),
         lastActive: now
       });
       set((state) => ({
         profile: state.profile ? { 
           ...state.profile, 
           dailyActiveMinutes: (state.profile.dailyActiveMinutes || 0) + 1,
+          weeklyTimeSpent: (state.profile.weeklyTimeSpent || 0) + 1,
+          timeSpent: (state.profile.timeSpent || 0) + 1,
           lastActive: now
         } : null
+      }));
+    } catch (e) { console.error(e); }
+  },
+  updateMediaInteraction: async (mediaId) => {
+    const { profile } = get();
+    if (!profile) return;
+    const userRef = doc(db, 'users', profile.uid);
+    const now = new Date().toISOString();
+    const interactions = { ...(profile.mediaLastInteraction || {}), [mediaId]: now };
+    try {
+      await updateDoc(userRef, { mediaLastInteraction: interactions });
+      set((state) => ({
+        profile: state.profile ? { ...state.profile, mediaLastInteraction: interactions } : null
       }));
     } catch (e) { console.error(e); }
   }

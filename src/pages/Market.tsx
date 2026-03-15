@@ -8,31 +8,31 @@ import { translations } from '../translations';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 
 const PREMIUM_ITEMS = [
-  { id: 'name_change', name: 'Identity Forger', desc: 'Allows you to change your permanent nickname once.', cost: 50000, icon: '🎭', color: 'from-red-500 to-orange-500' },
-  { id: 'double_xp', name: 'Abyssal Knowledge', desc: 'Double XP gain for 24 hours.', cost: 10000, icon: '🧠', color: 'from-purple-500 to-pink-500' },
-  { id: 'double_coins', name: 'Midas Touch', desc: 'Double Gold gain for 24 hours.', cost: 10000, icon: '🪙', color: 'from-yellow-400 to-amber-600' },
-  { id: 'energy_potion', name: 'Energy Potion', desc: 'Instantly restores 50 Energy.', cost: 5000, icon: '⚡', color: 'from-cyan-400 to-blue-600' },
-  { id: 'protection_scroll', name: 'Protection Scroll', desc: 'Prevents XP and Gold loss from the next failed Gate.', cost: 15000, icon: '📜', color: 'from-blue-400 to-indigo-600' },
-  { id: 'raid_shield', name: 'Raid Shield', desc: 'Protects your Gold from being raided for 24 hours.', cost: 20000, icon: '🛡️', color: 'from-slate-400 to-slate-600' },
-  { id: 'arena_ticket', name: 'Arena Ticket', desc: 'Restores 20 Energy specifically for Arena battles.', cost: 2000, icon: '⚔️', color: 'from-red-400 to-red-600' },
-  { id: 'guild_token', name: 'Guild Token', desc: 'Required to create a Guild.', cost: 50000, icon: '🏰', color: 'from-emerald-400 to-emerald-600' },
+  { id: 'name_change', name: 'identityForger', desc: 'identityForgerDesc', cost: 75000, icon: '🎭', color: 'from-red-500 to-orange-500' },
+  { id: 'double_xp', name: 'abyssalKnowledge', desc: 'abyssalKnowledgeDesc', cost: 15000, icon: '🧠', color: 'from-purple-500 to-pink-500' },
+  { id: 'double_coins', name: 'midasTouch', desc: 'midasTouchDesc', cost: 15000, icon: '🪙', color: 'from-yellow-400 to-amber-600' },
+  { id: 'energy_potion', name: 'energyPotion', desc: 'energyPotionDesc', cost: 7500, icon: '⚡', color: 'from-cyan-400 to-blue-600' },
+  { id: 'protection_scroll', name: 'protectionScroll', desc: 'protectionScrollDesc', cost: 25000, icon: '📜', color: 'from-blue-400 to-indigo-600' },
+  { id: 'raid_shield', name: 'raidShield', desc: 'raidShieldDesc', cost: 30000, icon: '🛡️', color: 'from-slate-400 to-slate-600' },
+  { id: 'arena_ticket', name: 'arenaTicket', desc: 'arenaTicketDesc', cost: 3000, icon: '⚔️', color: 'from-red-400 to-red-600' },
+  { id: 'guild_token', name: 'guildToken', desc: 'guildTokenDesc', cost: 75000, icon: '🏰', color: 'from-emerald-400 to-emerald-600' },
 ];
 
 const BLACK_MARKET_ITEMS = [
-  { id: 'smuggled_ssr', name: 'Smuggled SSR Ticket', desc: 'A guaranteed SSR pull. Highly illegal.', cost: 2500000, icon: '🎫', color: 'from-purple-900 to-black' },
-  { id: 'cursed_energy', name: 'Cursed Energy', desc: 'Restores 100 Energy, but might drain 10% of your Gold.', cost: 10000, icon: '💀', color: 'from-red-900 to-black' },
-  { id: 'mystery_box', name: 'Abyssal Mystery Box', desc: 'Could contain anything from 1 Gold to 200,000 Gold.', cost: 100000, icon: '📦', color: 'from-gray-800 to-black' },
-  { id: 'stolen_stats', name: 'Stolen Stats', desc: 'Permanently increases your base power by 100. Very risky.', cost: 250000, icon: '💉', color: 'from-green-900 to-black' },
-  { id: 'void_key', name: 'Void Key', desc: 'Grants access to the secret Void Gate.', cost: 2000000, icon: '🗝️', color: 'from-indigo-900 to-black' },
-  { id: 'blood_contract', name: 'Blood Contract', desc: 'Sacrifice 90 Energy for a chance at massive wealth.', cost: 50000, icon: '🩸', color: 'from-red-950 to-black' },
-  { id: 'forbidden_knowledge', name: 'Forbidden Knowledge', desc: 'Instantly grants 10,000 XP.', cost: 250000, icon: '👁️', color: 'from-fuchsia-900 to-black' },
+  { id: 'smuggled_ssr', name: 'smuggledSSR', desc: 'smuggledSSRDesc', cost: 3500000, icon: '🎫', color: 'from-purple-900 to-black' },
+  { id: 'cursed_energy', name: 'cursedEnergy', desc: 'cursedEnergyDesc', cost: 15000, icon: '💀', color: 'from-red-900 to-black' },
+  { id: 'mystery_box', name: 'mysteryBox', desc: 'mysteryBoxDesc', cost: 150000, icon: '📦', color: 'from-gray-800 to-black' },
+  { id: 'stolen_stats', name: 'stolenStats', desc: 'stolenStatsDesc', cost: 400000, icon: '💉', color: 'from-green-900 to-black' },
+  { id: 'void_key', name: 'voidKey', desc: 'voidKeyDesc', cost: 3000000, icon: '🗝️', color: 'from-indigo-900 to-black' },
+  { id: 'blood_contract', name: 'bloodContract', desc: 'bloodContractDesc', cost: 75000, icon: '🩸', color: 'from-red-950 to-black' },
+  { id: 'forbidden_knowledge', name: 'forbiddenKnowledge', desc: 'forbiddenKnowledgeDesc', cost: 400000, icon: '👁️', color: 'from-fuchsia-900 to-black' },
 ];
 
 const PRICE_FLOORS: Record<string, number> = {
-  'SSR': 500000,
-  'Epic': 100000,
-  'Rare': 25000,
-  'Normal': 5000
+  'SSR': 750000,
+  'Epic': 150000,
+  'Rare': 40000,
+  'Normal': 7500
 };
 
 export function Market() {
@@ -122,15 +122,17 @@ export function Market() {
 
     setBuying('listing');
     try {
+      const batch = writeBatch(db);
       const userRef = doc(db, 'users', profile.uid);
       const newInventory = [...(profile.inventory || [])];
       newInventory.splice(index, 1);
 
-      await updateDoc(userRef, {
+      batch.update(userRef, {
         inventory: newInventory
       });
 
-      await setDoc(doc(collection(db, 'market_listings')), {
+      const listingRef = doc(collection(db, 'market_listings'));
+      batch.set(listingRef, {
         sellerId: profile.uid,
         sellerName: profile.displayName,
         card,
@@ -138,16 +140,18 @@ export function Market() {
         createdAt: new Date().toISOString()
       });
 
+      await batch.commit();
+
       setListingPrice(prev => {
         const next = { ...prev };
         delete next[index];
         return next;
       });
       fetchListings();
-      alert('Card listed successfully!');
+      alert(t.cardListed || 'Card listed successfully!');
     } catch (err) {
       console.error(err);
-      setError('Failed to list card.');
+      setError(t.failedListCard || 'Failed to list card.');
     } finally {
       setBuying(null);
     }
@@ -164,26 +168,25 @@ export function Market() {
     setError('');
 
     try {
+      const batch = writeBatch(db);
       const userRef = doc(db, 'users', profile.uid);
       
       if (item.id === 'name_change') {
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost),
           nickname: '' // Reset nickname so modal appears
         });
-        alert(`Successfully purchased ${item.name}! Please refresh to change your name.`);
+        await batch.commit();
+        alert(`${t.successfullyPurchased || 'Successfully purchased'} ${t[item.name] || item.name}! ${t.refreshToChangeName || 'Please refresh to change your name.'}`);
       } else if (item.id === 'energy_potion') {
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost),
           energy: increment(50)
         });
-        alert(`Successfully purchased ${item.name}! +50 Energy.`);
+        await batch.commit();
+        alert(`${t.successfullyPurchased || 'Successfully purchased'} ${t[item.name] || item.name}! +50 ${t.energy || 'Energy'}.`);
       } else if (item.id === 'smuggled_ssr') {
-        // Give a random SSR card
-        // In a real app, we'd pull from a database of SSRs. For now, we'll just give a placeholder or let them use it in Gacha.
-        // Actually, let's just give them a pity counter boost or a direct card.
-        // For simplicity, we'll just give them a "Smuggled SSR" item in inventory.
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost),
           inventory: arrayUnion({
             id: `smuggled_${Date.now()}`,
@@ -191,78 +194,91 @@ export function Market() {
             mediaTitle: "The Black Market",
             imageUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=abyss&backgroundColor=000000",
             rarity: "SSR",
-            stats: { atk: 999, def: 999, spd: 999 },
+            atk: 999,
+            def: 999,
+            spd: 999,
+            durability: 100,
             mergeLevel: 1
           })
         });
-        alert(`Successfully purchased ${item.name}! Check your inventory.`);
+        await batch.commit();
+        alert(`${t.successfullyPurchased || 'Successfully purchased'} ${t[item.name] || item.name}! ${t.checkInventory || 'Check your inventory.'}`);
       } else if (item.id === 'cursed_energy') {
         const drain = Math.floor(profile.coins * 0.1);
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-(item.cost + drain)),
           energy: increment(100)
         });
-        alert(`Successfully purchased ${item.name}! +100 Energy, but you lost ${drain.toLocaleString()} Gold to the curse.`);
+        await batch.commit();
+        alert(`${t.successfullyPurchased || 'Successfully purchased'} ${t[item.name] || item.name}! +100 ${t.energy || 'Energy'}, ${t.lostGoldToCurse || 'but you lost'} ${drain.toLocaleString()} ${t.gold || 'Gold to the curse.'}`);
       } else if (item.id === 'mystery_box') {
         const reward = Math.floor(Math.random() * 200000) + 1;
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost + reward)
         });
-        alert(`You opened the Mystery Box and found ${reward.toLocaleString()} Gold!`);
+        await batch.commit();
+        alert(`${t.openedMysteryBox || 'You opened the Mystery Box and found'} ${reward.toLocaleString()} ${t.gold || 'Gold!'}`);
       } else if (item.id === 'stolen_stats') {
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost),
           basePower: increment(100)
         });
-        alert(`Successfully purchased ${item.name}! Your base power increased by 100.`);
+        await batch.commit();
+        alert(`${t.successfullyPurchased || 'Successfully purchased'} ${t[item.name] || item.name}! ${t.basePowerIncreased || 'Your base power increased by 100.'}`);
       } else if (item.id === 'void_key') {
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost),
           hasVoidKey: true
         });
-        alert(`Successfully purchased ${item.name}! The Void Gate is now open to you.`);
+        await batch.commit();
+        alert(`${t.successfullyPurchased || 'Successfully purchased'} ${t[item.name] || item.name}! ${t.voidGateOpen || 'The Void Gate is now open to you.'}`);
       } else if (item.id === 'arena_ticket') {
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost),
           energy: increment(20)
         });
-        alert(`Successfully purchased ${item.name}! +20 Energy for the Arena.`);
+        await batch.commit();
+        alert(`${t.successfullyPurchased || 'Successfully purchased'} ${t[item.name] || item.name}! +20 ${t.energy || 'Energy'} ${t.forArena || 'for the Arena.'}`);
       } else if (item.id === 'blood_contract') {
         if (profile.energy < 90) {
-          setError('You do not have enough Energy to sign the Blood Contract.');
+          setError(t.notEnoughEnergyForContract || 'You do not have enough Energy to sign the Blood Contract.');
           return;
         }
         const reward = Math.floor(Math.random() * 90000) + 10000;
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost + reward),
           energy: increment(-90)
         });
-        alert(`You signed the Blood Contract. -90 Energy, +${reward.toLocaleString()} Gold!`);
+        await batch.commit();
+        alert(`${t.signedBloodContract || 'You signed the Blood Contract.'} -90 ${t.energy || 'Energy'}, +${reward.toLocaleString()} ${t.gold || 'Gold!'}`);
       } else if (item.id === 'forbidden_knowledge') {
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost),
           xp: increment(10000)
         });
-        alert(`You absorbed the Forbidden Knowledge. +10,000 XP!`);
+        await batch.commit();
+        alert(`${t.absorbedForbiddenKnowledge || 'You absorbed the Forbidden Knowledge.'} +10,000 XP!`);
       } else if (item.id === 'guild_token') {
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost),
           hasGuildToken: true
         });
-        alert(`Successfully purchased ${item.name}! You can now create a Guild.`);
+        await batch.commit();
+        alert(`${t.successfullyPurchased || 'Successfully purchased'} ${t[item.name] || item.name}! ${t.canCreateGuild || 'You can now create a Guild.'}`);
       } else {
         const expiry = new Date();
         expiry.setHours(expiry.getHours() + 24);
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           coins: increment(-item.cost),
           [`activeBoosts.${item.id}`]: expiry.toISOString()
         });
-        alert(`Successfully purchased ${item.name}!`);
+        await batch.commit();
+        alert(`${t.successfullyPurchased || 'Successfully purchased'} ${t[item.name] || item.name}!`);
       }
       
     } catch (err) {
-      console.error(err);
-      setError('Transaction failed. The Abyss reclaims its goods.');
+      handleFirestoreError(err, OperationType.WRITE, 'users');
+      setError(t.transactionFailed || 'Transaction failed. The Abyss reclaims its goods.');
     } finally {
       setBuying(null);
     }
@@ -271,7 +287,7 @@ export function Market() {
   const handleBuy = async (listing: any) => {
     if (!profile) return;
     if (profile.uid === listing.sellerId) {
-      setError("You can't buy your own listing.");
+      setError(t.cantBuyOwnListing || "You can't buy your own listing.");
       return;
     }
     if (profile.coins < listing.price) {
@@ -307,10 +323,10 @@ export function Market() {
       await batch.commit();
 
       fetchListings();
-      alert('Card purchased successfully!');
+      alert(t.cardPurchased || 'Card purchased successfully!');
     } catch (err) {
-      console.error(err);
-      setError("Transaction failed.");
+      handleFirestoreError(err, OperationType.WRITE, 'market_listings');
+      setError(t.transactionFailed || "Transaction failed.");
     } finally {
       setBuying(null);
     }
@@ -337,7 +353,7 @@ export function Market() {
         
         <div className={`flex items-center gap-2 px-4 py-2 ${isBlackMarketOpen ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white/50'} border rounded-xl font-mono text-sm`}>
           <Clock size={16} /> 
-          <span>{isBlackMarketOpen ? `Closes in ${timeUntilClose}` : 'Black Market Closed'}</span>
+          <span>{isBlackMarketOpen ? `${t.closesIn || 'Closes in'} ${timeUntilClose}` : (t.blackMarketClosed || 'Black Market Closed')}</span>
         </div>
       </div>
 
@@ -351,10 +367,10 @@ export function Market() {
       <div className="mb-12">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-black tracking-widest uppercase flex items-center gap-2">
-            <Star className="text-yellow-400" /> Daily Shop
+            <Star className="text-yellow-400" /> {t.dailyShop || 'Daily Shop'}
           </h2>
           <div className="text-sm font-mono text-white/50 bg-white/5 px-3 py-1 rounded-lg border border-white/10">
-            Refreshes in 24h
+            {t.refreshesIn24h || 'Refreshes in 24h'}
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -362,12 +378,12 @@ export function Market() {
             <div key={item.id} className="bg-black/40 border border-white/10 rounded-2xl p-6 relative overflow-hidden group">
               <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-5 group-hover:opacity-10 transition-opacity`} />
               <div className="text-4xl mb-4">{item.icon}</div>
-              <h3 className="text-xl font-bold mb-2">{item.name}</h3>
-              <p className="text-sm text-white/50 mb-6 h-10">{item.desc}</p>
+              <h3 className="text-xl font-bold mb-2">{t[item.name] || item.name}</h3>
+              <p className="text-sm text-white/50 mb-6 h-10">{t[item.desc] || item.desc}</p>
               <div className="flex items-center justify-between">
                 <span className="font-mono text-yellow-400 font-bold">{item.cost.toLocaleString()} G</span>
                 {profile?.activeBoosts?.[item.id] && profile.activeBoosts[item.id] > new Date().toISOString() ? (
-                  <span className="text-xs text-green-400 font-bold uppercase tracking-widest">Active</span>
+                  <span className="text-xs text-green-400 font-bold uppercase tracking-widest">{t.active || 'Active'}</span>
                 ) : (
                   <button
                     onClick={() => handleBuyPremium(item)}
@@ -392,15 +408,15 @@ export function Market() {
         >
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-20" />
           <h2 className="text-2xl font-black tracking-widest uppercase mb-6 flex items-center gap-2 text-red-500 relative z-10">
-            <Flame className="text-red-500" /> Contraband (Black Market)
+            <Flame className="text-red-500" /> {t.contraband || 'Contraband (Black Market)'}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
             {BLACK_MARKET_ITEMS.map(item => (
               <div key={item.id} className="bg-black/60 border border-red-500/20 rounded-2xl p-6 relative overflow-hidden group hover:border-red-500/50 transition-colors">
                 <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-10 group-hover:opacity-20 transition-opacity`} />
                 <div className="text-4xl mb-4">{item.icon}</div>
-                <h3 className="text-xl font-bold mb-2 text-red-100">{item.name}</h3>
-                <p className="text-sm text-red-200/50 mb-6 h-10">{item.desc}</p>
+                <h3 className="text-xl font-bold mb-2 text-red-100">{t[item.name] || item.name}</h3>
+                <p className="text-sm text-red-200/50 mb-6 h-10">{t[item.desc] || item.desc}</p>
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-red-400 font-bold">{item.cost.toLocaleString()} G</span>
                   <button
@@ -408,7 +424,7 @@ export function Market() {
                     disabled={buying === item.id || (profile?.coins || 0) < item.cost}
                     className="px-4 py-2 bg-red-500/20 hover:bg-red-500/40 text-red-200 disabled:opacity-50 rounded-lg font-bold text-sm transition-colors"
                   >
-                    {buying === item.id ? '...' : 'Purchase'}
+                    {buying === item.id ? '...' : (t.purchase || 'Purchase')}
                   </button>
                 </div>
               </div>
@@ -466,7 +482,7 @@ export function Market() {
 
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-black/90 backdrop-blur-md border-t border-white/10">
                 <h2 className="text-lg font-black mb-1 truncate">{listing.card.characterName}</h2>
-                <p className="text-[10px] text-white/50 uppercase mb-2">Seller: {listing.sellerName}</p>
+                <p className="text-[10px] text-white/50 uppercase mb-2">{t.seller || 'Seller'}: {listing.sellerName}</p>
                 
                 <div className="flex justify-between items-center mt-2">
                   <div className="text-yellow-400 font-mono font-bold flex items-center gap-1">
@@ -486,7 +502,7 @@ export function Market() {
           ))}
           {listings.length === 0 && (
             <div className="col-span-full py-20 text-center text-white/30 font-mono">
-              No listings available. The market is dead.
+              {t.noListings || 'No listings available. The market is dead.'}
             </div>
           )}
         </div>
@@ -510,12 +526,12 @@ export function Market() {
               
               <div className="space-y-2">
                 <div className="flex justify-between text-[10px] text-white/50 uppercase">
-                  <span>Price Floor</span>
+                  <span>{t.priceFloor || 'Price Floor'}</span>
                   <span>{PRICE_FLOORS[card.rarity]?.toLocaleString()} G</span>
                 </div>
                 <input
                   type="number"
-                  placeholder="Set Price..."
+                  placeholder={t.setPrice || "Set Price..."}
                   value={listingPrice[index] || ''}
                   onChange={(e) => setListingPrice(prev => ({ ...prev, [index]: parseInt(e.target.value) }))}
                   className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-purple-500 outline-none transition-colors"
@@ -532,7 +548,7 @@ export function Market() {
           ))}
           {(!profile?.inventory || profile.inventory.length === 0) && (
             <div className="col-span-full py-20 text-center text-white/30 font-mono">
-              Your inventory is empty. Go summon some souls.
+              {t.inventoryEmpty || 'Your inventory is empty. Go summon some souls.'}
             </div>
           )}
         </div>

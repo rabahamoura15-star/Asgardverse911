@@ -91,7 +91,7 @@ export function Home() {
           transition={{ delay: 0.2 }}
           className="text-xl text-white/60 mb-10 max-w-2xl"
         >
-          The ultimate hardcore tracker for Anime, Manga, and Manhwa. Level up, pull SSR characters, and dominate the global rankings.
+          {t.heroDescription || 'The ultimate hardcore tracker for Anime, Manga, and Manhwa. Level up, pull SSR characters, and dominate the global rankings.'}
         </motion.p>
         <motion.button
           initial={{ opacity: 0, scale: 0.9 }}
@@ -120,8 +120,8 @@ export function Home() {
               <Flame size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-white uppercase tracking-widest">Weekly Progress</h3>
-              <p className="text-sm text-white/50 font-mono">{profile.loginStreak || 0}/7 Days</p>
+              <h3 className="font-bold text-white uppercase tracking-widest">{t.weeklyProgress || 'Weekly Progress'}</h3>
+              <p className="text-sm text-white/50 font-mono">{profile.loginStreak || 0}/7 {t.days || 'Days'}</p>
             </div>
           </div>
           <div className="w-full bg-white/5 rounded-full h-2 mb-2">
@@ -130,7 +130,7 @@ export function Home() {
               style={{ width: `${Math.min(((profile.loginStreak || 0) / 7) * 100, 100)}%` }}
             />
           </div>
-          <p className="text-xs text-white/30 text-right">7-Day Reward: 100k G + 5k XP</p>
+          <p className="text-xs text-white/30 text-right">{t.sevenDayReward || '7-Day Reward: 100k G + 5k XP'}</p>
         </div>
 
         <div className="bg-white/5 border border-white/10 rounded-3xl p-6 relative overflow-hidden group cursor-pointer" onClick={() => navigate('/quests')}>
@@ -140,12 +140,12 @@ export function Home() {
               <Target size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-white uppercase tracking-widest">Daily Quests</h3>
-              <p className="text-sm text-white/50 font-mono">Reset at Midnight</p>
+              <h3 className="font-bold text-white uppercase tracking-widest">{t.dailyQuests || 'Daily Quests'}</h3>
+              <p className="text-sm text-white/50 font-mono">{t.resetAtMidnight || 'Reset at Midnight'}</p>
             </div>
           </div>
           <div className="flex items-center justify-between mt-6">
-            <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">View Quests</span>
+            <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">{t.viewQuests || 'View Quests'}</span>
             <ChevronRight size={16} className="text-cyan-400 group-hover:translate-x-2 transition-transform" />
           </div>
         </div>
@@ -157,12 +157,12 @@ export function Home() {
               <Skull size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-white uppercase tracking-widest">Abyssal Gates</h3>
-              <p className="text-sm text-white/50 font-mono">Risk it all</p>
+              <h3 className="font-bold text-white uppercase tracking-widest">{t.abyssalGates || 'Abyssal Gates'}</h3>
+              <p className="text-sm text-white/50 font-mono">{t.riskItAll || 'Risk it all'}</p>
             </div>
           </div>
           <div className="flex items-center justify-between mt-6">
-            <span className="text-xs font-bold text-red-500 uppercase tracking-widest">Enter Gates</span>
+            <span className="text-xs font-bold text-red-500 uppercase tracking-widest">{t.enterGates || 'Enter Gates'}</span>
             <ChevronRight size={16} className="text-red-500 group-hover:translate-x-2 transition-transform" />
           </div>
         </div>

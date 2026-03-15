@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useUserStore } from '../store/useUserStore';
 import { doc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Target, CheckCircle2, Circle, Zap, Coins, Clock, Trophy, Star, ShoppingCart, Sparkles, Play } from 'lucide-react';
+import { BookOpen, Clock, Zap, Sparkles, Play, Target, ShoppingCart, Star, Trophy, CheckCircle2, Circle } from 'lucide-react';
 import { translations } from '../translations';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 
@@ -48,9 +48,9 @@ export function Quests() {
     // Daily Quests
     { 
       id: 'd1', 
-      title: 'Abyssal Endurance', 
-      desc: 'Maintain active presence for 3 hours today (180 mins)', 
-      reward: 10000, 
+      title: t.abyssalEndurance || 'Abyssal Endurance', 
+      desc: t.abyssalEnduranceDesc || 'Maintain active presence for 3 hours today (180 mins)', 
+      reward: 7500, 
       type: 'coins', 
       difficulty: 'hard', 
       category: 'daily',
@@ -59,9 +59,9 @@ export function Quests() {
     },
     { 
       id: 'd2', 
-      title: 'Bloodlust', 
-      desc: 'Engage in 5 Arena battles today', 
-      reward: 5000, 
+      title: t.bloodlust || 'Bloodlust', 
+      desc: t.bloodlustDesc || 'Engage in 5 Arena battles today', 
+      reward: 3000, 
       type: 'coins', 
       difficulty: 'medium', 
       category: 'daily',
@@ -70,21 +70,285 @@ export function Quests() {
     },
     { 
       id: 'd3', 
-      title: 'Gacha Addict', 
-      desc: 'Burn 500,000 Gold in Summons today', 
-      reward: 50, 
+      title: t.gachaAddict || 'Gacha Addict', 
+      desc: t.gachaAddictDesc || 'Burn 500,000 Gold in Summons today', 
+      reward: 30, 
       type: 'energy', 
       difficulty: 'hard', 
       category: 'daily',
       icon: <Sparkles size={16} />,
       check: (p) => (p.todayGoldSpent || 0) >= 500000 
     },
+    { 
+      id: 'd4', 
+      title: t.manhwaReader || 'Manhwa Reader', 
+      desc: t.manhwaReaderDesc || 'Browse 5 different Manhwa works', 
+      reward: 1500, 
+      type: 'coins', 
+      difficulty: 'medium', 
+      category: 'daily',
+      icon: <BookOpen size={16} />,
+      check: (p) => (p.manhwaViewedCount || 0) >= 5 
+    },
+    { 
+      id: 'd5', 
+      title: t.cinephile || 'Cinephile', 
+      desc: t.cinephileDesc || 'Watch 2 trailers', 
+      reward: 750, 
+      type: 'coins', 
+      difficulty: 'easy', 
+      category: 'daily',
+      icon: <Play size={16} />,
+      check: (p) => (p.trailersWatched || 0) >= 2 
+    },
+    { 
+      id: 'd6', 
+      title: t.animeBinge || 'Anime Binge', 
+      desc: t.animeBingeDesc || 'Browse 10 Anime/Manga works', 
+      reward: 2000, 
+      type: 'coins', 
+      difficulty: 'medium', 
+      category: 'daily',
+      icon: <Sparkles size={16} />,
+      check: (p) => (p.mediaViewedCount || 0) >= 10 
+    },
+    { 
+      id: 'd7', 
+      title: t.curiousMind || 'Curious Mind', 
+      desc: t.curiousMindDesc || 'Perform a search', 
+      reward: 300, 
+      type: 'coins', 
+      difficulty: 'easy', 
+      category: 'daily',
+      icon: <Target size={16} />,
+      check: (p) => p.searchPerformed === true 
+    },
+    { 
+      id: 'd8', 
+      title: t.blackMarketShopper || 'Black Market Shopper', 
+      desc: t.blackMarketShopperDesc || 'Visit the Black Market', 
+      reward: 300, 
+      type: 'coins', 
+      difficulty: 'easy', 
+      category: 'daily',
+      icon: <ShoppingCart size={16} />,
+      check: (p) => p.marketVisited === true 
+    },
+    { 
+      id: 'd9', 
+      title: t.gachaAddictII || 'Gacha Addict II', 
+      desc: t.gachaAddictIIDesc || 'Pull 10 times in Gacha today', 
+      reward: 3500, 
+      type: 'coins', 
+      difficulty: 'medium', 
+      category: 'daily',
+      icon: <Sparkles size={16} />,
+      check: (p) => (p.gachaPullsToday || 0) >= 10 
+    },
+    { 
+      id: 'd10', 
+      title: t.arenaGladiator || 'Arena Gladiator', 
+      desc: t.arenaGladiatorDesc || 'Engage in 10 Arena battles today', 
+      reward: 7500, 
+      type: 'coins', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <Zap size={16} />,
+      check: (p) => (p.todayArenaAttacks || 0) >= 10 
+    },
+    { 
+      id: 'd11', 
+      title: t.abyssalScholar || 'Abyssal Scholar', 
+      desc: t.abyssalScholarDesc || 'Browse 25 Anime/Manga works', 
+      reward: 7500, 
+      type: 'coins', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <BookOpen size={16} />,
+      check: (p) => (p.mediaViewedCount || 0) >= 25 
+    },
+    { 
+      id: 'd12', 
+      title: t.trailerJunkie || 'Trailer Junkie', 
+      desc: t.trailerJunkieDesc || 'Watch 5 trailers', 
+      reward: 3500, 
+      type: 'coins', 
+      difficulty: 'medium', 
+      category: 'daily',
+      icon: <Play size={16} />,
+      check: (p) => (p.trailersWatched || 0) >= 5 
+    },
+    { 
+      id: 'd13', 
+      title: t.manhwaConnoisseur || 'Manhwa Connoisseur', 
+      desc: t.manhwaConnoisseurDesc || 'Browse 15 Manhwa works', 
+      reward: 7500, 
+      type: 'coins', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <BookOpen size={16} />,
+      check: (p) => (p.manhwaViewedCount || 0) >= 15 
+    },
+    { 
+      id: 'd14', 
+      title: t.gachaWhale || 'Gacha Whale', 
+      desc: t.gachaWhaleDesc || 'Pull 50 times in Gacha today', 
+      reward: 15, 
+      type: 'energy', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <Sparkles size={16} />,
+      check: (p) => (p.gachaPullsToday || 0) >= 50 
+    },
+    { 
+      id: 'd15', 
+      title: t.dedicatedHunter || 'Dedicated Hunter', 
+      desc: t.dedicatedHunterDesc || 'Maintain active presence for 1 hour (60 mins)', 
+      reward: 3500, 
+      type: 'coins', 
+      difficulty: 'medium', 
+      category: 'daily',
+      icon: <Clock size={16} />,
+      check: (p) => (p.dailyActiveMinutes || 0) >= 60 
+    },
+    { 
+      id: 'd16', 
+      title: t.mangaEnthusiast || 'Manga Enthusiast', 
+      desc: t.mangaEnthusiastDesc || 'Browse 5 Manga works', 
+      reward: 1500, 
+      type: 'coins', 
+      difficulty: 'medium', 
+      category: 'daily',
+      icon: <BookOpen size={16} />,
+      check: (p) => (p.mangaViewedCount || 0) >= 5 
+    },
+    { 
+      id: 'd17', 
+      title: t.animeWatcher || 'Anime Watcher', 
+      desc: t.animeWatcherDesc || 'Browse 5 Anime works', 
+      reward: 1500, 
+      type: 'coins', 
+      difficulty: 'medium', 
+      category: 'daily',
+      icon: <Play size={16} />,
+      check: (p) => (p.animeViewedCount || 0) >= 5 
+    },
+    { 
+      id: 'd18', 
+      title: t.deepDiver || 'Deep Diver', 
+      desc: t.deepDiverDesc || 'Browse 20 works of any type', 
+      reward: 6000, 
+      type: 'coins', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <Sparkles size={16} />,
+      check: (p) => (p.mediaViewedCount || 0) >= 20 
+    },
+    { 
+      id: 'd19', 
+      title: t.trailerCritic || 'Trailer Critic', 
+      desc: t.trailerCriticDesc || 'Watch 10 trailers', 
+      reward: 7500, 
+      type: 'coins', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <Play size={16} />,
+      check: (p) => (p.trailersWatched || 0) >= 10 
+    },
+    { 
+      id: 'd20', 
+      title: t.manhwaAddict || 'Manhwa Addict', 
+      desc: t.manhwaAddictDesc || 'Browse 10 Manhwa works', 
+      reward: 3500, 
+      type: 'coins', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <BookOpen size={16} />,
+      check: (p) => (p.manhwaViewedCount || 0) >= 10 
+    },
+    { 
+      id: 'd21', 
+      title: t.quickGlance || 'Quick Glance', 
+      desc: t.quickGlanceDesc || 'Browse 3 works', 
+      reward: 750, 
+      type: 'coins', 
+      difficulty: 'easy', 
+      category: 'daily',
+      icon: <Sparkles size={16} />,
+      check: (p) => (p.mediaViewedCount || 0) >= 3 
+    },
+    { 
+      id: 'd22', 
+      title: t.trailerFan || 'Trailer Fan', 
+      desc: t.trailerFanDesc || 'Watch 1 trailer', 
+      reward: 350, 
+      type: 'coins', 
+      difficulty: 'easy', 
+      category: 'daily',
+      icon: <Play size={16} />,
+      check: (p) => (p.trailersWatched || 0) >= 1 
+    },
+    { 
+      id: 'd23', 
+      title: t.mangaReader || 'Manga Reader', 
+      desc: t.mangaReaderDesc || 'Browse 10 Manga works', 
+      reward: 3500, 
+      type: 'coins', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <BookOpen size={16} />,
+      check: (p) => (p.mangaViewedCount || 0) >= 10 
+    },
+    { 
+      id: 'd24', 
+      title: t.animeFanatic || 'Anime Fanatic', 
+      desc: t.animeFanaticDesc || 'Browse 10 Anime works', 
+      reward: 3500, 
+      type: 'coins', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <Play size={16} />,
+      check: (p) => (p.animeViewedCount || 0) >= 10 
+    },
+    { 
+      id: 'd25', 
+      title: t.explorer || 'Explorer', 
+      desc: t.explorerDesc || 'Perform 5 searches', 
+      reward: 1500, 
+      type: 'coins', 
+      difficulty: 'medium', 
+      category: 'daily',
+      icon: <Target size={16} />,
+      check: (p) => (p.searchCount || 0) >= 5 
+    },
+    { 
+      id: 'd26', 
+      title: t.researcher || 'Researcher', 
+      desc: t.researcherDesc || 'Perform 10 searches', 
+      reward: 4000, 
+      type: 'coins', 
+      difficulty: 'hard', 
+      category: 'daily',
+      icon: <Target size={16} />,
+      check: (p) => (p.searchCount || 0) >= 10 
+    },
+    { 
+      id: 'd27', 
+      title: t.abyssalObserver || 'Abyssal Observer', 
+      desc: t.abyssalObserverDesc || 'Watch 3 trailers', 
+      reward: 1500, 
+      type: 'coins', 
+      difficulty: 'medium', 
+      category: 'daily',
+      icon: <Play size={16} />,
+      check: (p) => (p.trailersWatched || 0) >= 3 
+    },
     // Achievements
     { 
       id: 'a1', 
-      title: 'Awakened', 
-      desc: 'Reach Level 5', 
-      reward: 10000, 
+      title: t.awakened || 'Awakened', 
+      desc: t.awakenedDesc || 'Reach Level 5', 
+      reward: 5000, 
       type: 'coins', 
       difficulty: 'easy', 
       category: 'achievement',
@@ -93,9 +357,9 @@ export function Quests() {
     },
     { 
       id: 'a2', 
-      title: 'C-Rank Hunter', 
-      desc: 'Reach Level 25', 
-      reward: 50000, 
+      title: t.cRankHunter || 'C-Rank Hunter', 
+      desc: t.cRankHunterDesc || 'Reach Level 25', 
+      reward: 25000, 
       type: 'coins', 
       difficulty: 'medium', 
       category: 'achievement',
@@ -104,9 +368,9 @@ export function Quests() {
     },
     { 
       id: 'a3', 
-      title: 'Collector', 
-      desc: 'Have 10 characters in inventory', 
-      reward: 25000, 
+      title: t.collector || 'Collector', 
+      desc: t.collectorDesc || 'Have 10 characters in inventory', 
+      reward: 15000, 
       type: 'coins', 
       difficulty: 'medium', 
       category: 'achievement',
@@ -115,9 +379,9 @@ export function Quests() {
     },
     { 
       id: 'a4', 
-      title: 'Shadow Monarch', 
-      desc: 'Reach Level 250', 
-      reward: 1000000, 
+      title: t.shadowMonarch || 'Shadow Monarch', 
+      desc: t.shadowMonarchDesc || 'Reach Level 250', 
+      reward: 500000, 
       type: 'coins', 
       difficulty: 'hard', 
       category: 'achievement',
@@ -126,9 +390,9 @@ export function Quests() {
     },
     { 
       id: 'a5', 
-      title: 'Absolute Being', 
-      desc: 'Reach Level 1000', 
-      reward: 10000000, 
+      title: t.absoluteBeing || 'Absolute Being', 
+      desc: t.absoluteBeingDesc || 'Reach Level 1000', 
+      reward: 5000000, 
       type: 'coins', 
       difficulty: 'hard', 
       category: 'achievement',
@@ -140,9 +404,9 @@ export function Quests() {
   for (let i = 1; i <= 20; i++) {
     quests.push({
       id: `extra_${i}`,
-      title: `Quest #${i + 5}`,
-      desc: `Achievement milestone #${i}`,
-      reward: 10000 * i,
+      title: `${t.quest || 'Quest'} #${i + 5}`,
+      desc: `${t.achievementMilestone || 'Achievement milestone'} #${i}`,
+      reward: 5000 * i,
       type: 'coins',
       difficulty: i < 7 ? 'easy' : i < 14 ? 'medium' : 'hard',
       category: 'achievement',
@@ -162,7 +426,7 @@ export function Quests() {
   const handleClaim = async (quest: Quest) => {
     if (!profile || isQuestCompleted(quest.id, quest.category)) return;
     if (!quest.check(profile)) {
-      alert("Quest requirements not met yet!");
+      alert(t.questRequirementsNotMet || "Quest requirements not met yet!");
       return;
     }
 
@@ -195,8 +459,10 @@ export function Quests() {
       }
 
       await updateDoc(userRef, updates);
+      alert(`${t.claimed || 'Claimed'} ${finalAmount} ${quest.type}!`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users/${profile.uid}`);
+      alert(t.failedToClaimReward || 'Failed to claim reward.');
     }
   };
 
@@ -254,19 +520,17 @@ export function Quests() {
       if (totalEnergy > 0) updates.energy = increment(totalEnergy);
       
       if (dailyQuestIds.length > 0) {
-        dailyQuestIds.forEach(id => {
-          updates.completedDailyQuests = arrayUnion(id);
-        });
+        updates.completedDailyQuests = arrayUnion(...dailyQuestIds);
       }
       if (achievementIds.length > 0) {
-        achievementIds.forEach(id => {
-          updates.completedQuests = arrayUnion(id);
-        });
+        updates.completedQuests = arrayUnion(...achievementIds);
       }
 
       await updateDoc(userRef, updates);
+      alert(t.claimedAllRewards || 'Claimed all rewards!');
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users/${profile.uid}`);
+      alert(t.failedToClaimReward || 'Failed to claim reward.');
     }
   };
 
@@ -288,12 +552,12 @@ export function Quests() {
         <div className="flex flex-col gap-2 w-full md:w-auto">
           <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-2">
             <Clock className="text-cyan-400" size={16} />
-            <span className="text-sm font-bold text-white/70 uppercase tracking-widest">Resets In:</span>
+            <span className="text-sm font-bold text-white/70 uppercase tracking-widest">{t.resetsIn || 'Resets In'}:</span>
             <span className="text-cyan-400 font-mono font-bold">{timeLeft}</span>
           </div>
           <div className="w-full md:w-64 bg-black/40 border border-white/10 rounded-2xl p-4">
             <div className="flex justify-between items-end mb-2">
-              <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Progress</span>
+              <span className="text-xs font-bold text-white/50 uppercase tracking-widest">{t.progress || 'Progress'}</span>
               <span className="text-lg font-black text-cyan-400 font-mono">{completedCount}/{totalCount}</span>
             </div>
             <div className="h-2 bg-white/10 rounded-full overflow-hidden">
@@ -317,7 +581,7 @@ export function Quests() {
                 : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
             }`}
           >
-            Daily Quests
+            {t.dailyQuests || 'Daily Quests'}
           </button>
           <button
             onClick={() => setActiveTab('achievement')}
@@ -327,7 +591,7 @@ export function Quests() {
                 : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
             }`}
           >
-            Achievements
+            {t.achievements || 'Achievements'}
           </button>
         </div>
         
@@ -336,7 +600,7 @@ export function Quests() {
             onClick={handleClaimAll}
             className="py-4 px-8 rounded-2xl font-black uppercase tracking-widest bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)] transition-all"
           >
-            Claim All ({claimableQuests.length})
+            {t.claimAll || 'Claim All'} ({claimableQuests.length})
           </button>
         )}
       </div>
@@ -405,7 +669,7 @@ export function Quests() {
                         : 'bg-white/5 text-white/20 cursor-not-allowed'
                   }`}
                 >
-                  {isCompleted ? t.claimed : t.claim}
+                  {isCompleted ? (t.claimed || 'Claimed') : (t.claim || 'Claim')}
                 </button>
               </div>
             </motion.div>

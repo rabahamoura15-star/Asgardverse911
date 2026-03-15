@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react';
 import { useUserStore, getRank } from '../store/useUserStore';
 import { translations } from '../translations';
 import { Backpack, Star, Shield, Zap, DollarSign, Trophy, Target, TrendingUp, Layers } from 'lucide-react';
-import { doc, updateDoc, arrayRemove, collection, addDoc, arrayUnion, increment } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, collection, addDoc, arrayUnion, increment, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion, AnimatePresence } from 'framer-motion';
+import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 
 export function Inventory() {
   const { profile, language } = useUserStore();
@@ -45,19 +46,22 @@ export function Inventory() {
     
     const floor = sellingCard.rarity === 'SSR' ? 500000 : sellingCard.rarity === 'Epic' ? 100000 : sellingCard.rarity === 'Rare' ? 25000 : 5000;
     if (sellPrice < floor) {
-      alert(`Minimum price for ${sellingCard.rarity} is ${floor} Gold!`);
+      alert(`${t.minPriceFor || 'Minimum price for'} ${sellingCard.rarity} ${t.is || 'is'} ${floor} ${t.gold || 'Gold'}!`);
       return;
     }
 
     setIsProcessing(true);
 
     try {
+      const batch = writeBatch(db);
       const userRef = doc(db, 'users', profile.uid);
-      await updateDoc(userRef, {
+      
+      batch.update(userRef, {
         inventory: arrayRemove(sellingCard)
       });
 
-      await addDoc(collection(db, 'market_listings'), {
+      const listingRef = doc(collection(db, 'market_listings'));
+      batch.set(listingRef, {
         sellerId: profile.uid,
         sellerName: profile.nickname || profile.displayName,
         card: sellingCard,
@@ -65,12 +69,14 @@ export function Inventory() {
         createdAt: new Date().toISOString()
       });
 
+      await batch.commit();
+
       setSellingCard(null);
       setSelectedGroup(null);
-      alert('Card listed on the Black Market!');
+      alert(t.cardListed || 'Card listed on the Black Market!');
     } catch (error) {
-      console.error('Error selling card:', error);
-      alert('Failed to list card.');
+      handleFirestoreError(error, OperationType.WRITE, 'market_listings');
+      alert(t.failedListCard || 'Failed to list card.');
     } finally {
       setIsProcessing(false);
     }
@@ -95,7 +101,7 @@ export function Inventory() {
     }
 
     if (!card1 || !card2) {
-        alert("You need two identical cards of the same merge level to evolve.");
+        alert(t.needTwoIdenticalCards || "You need two identical cards of the same merge level to evolve.");
         return;
     }
     
@@ -104,7 +110,7 @@ export function Inventory() {
     const mergeCost = Math.floor(baseCost * Math.pow(2.5, currentMergeLevel)); // Exponential scaling
     
     if (profile.coins < mergeCost) {
-      alert(`You need ${mergeCost.toLocaleString()} Gold to merge these level ${currentMergeLevel} cards.`);
+      alert(`${t.need || 'You need'} ${mergeCost.toLocaleString()} ${t.goldToMerge || 'Gold to merge these level'} ${currentMergeLevel} ${t.cards || 'cards.'}`);
       return;
     }
     
@@ -122,6 +128,7 @@ export function Inventory() {
         durability: 100 // Reset durability on merge
       };
 
+      const batch = writeBatch(db);
       const userRef = doc(db, 'users', profile.uid);
       
       // Atomic update: modify the array in memory and write it back
@@ -133,16 +140,18 @@ export function Inventory() {
       
       newInventory.push(mergedCard);
 
-      await updateDoc(userRef, {
+      batch.update(userRef, {
         inventory: newInventory,
         coins: increment(-mergeCost)
       });
 
+      await batch.commit();
+
       setSelectedGroup(null);
-      alert(`Cards evolved to Level ${currentMergeLevel + 1}! Stats increased by 15%. Cost: ${mergeCost.toLocaleString()} Gold.`);
+      alert(`${t.cardsEvolved || 'Cards evolved to Level'} ${currentMergeLevel + 1}! ${t.statsIncreased || 'Stats increased by 15%. Cost:'} ${mergeCost.toLocaleString()} ${t.gold || 'Gold.'}`);
     } catch (error) {
-      console.error('Error merging cards:', error);
-      alert('Failed to merge cards.');
+      handleFirestoreError(error, OperationType.WRITE, 'users');
+      alert(t.failedMerge || 'Failed to merge cards.');
     } finally {
       setIsProcessing(false);
     }
@@ -163,18 +172,19 @@ export function Inventory() {
     });
 
     if (cardsToRepair === 0) {
-      alert("All cards in this group are already at 100% durability.");
+      alert(t.allCardsRepaired || "All cards in this group are already at 100% durability.");
       return;
     }
 
     if (profile.coins < totalCost) {
-      alert(`You need ${totalCost.toLocaleString()} Gold to fully repair these cards.`);
+      alert(`${t.need || 'You need'} ${totalCost.toLocaleString()} ${t.goldToRepair || 'Gold to fully repair these cards.'}`);
       return;
     }
 
     setIsProcessing(true);
 
     try {
+      const batch = writeBatch(db);
       const userRef = doc(db, 'users', profile.uid);
       
       let updatedInventory = [...(profile.inventory || [])];
@@ -189,16 +199,18 @@ export function Inventory() {
         }
       });
 
-      await updateDoc(userRef, {
+      batch.update(userRef, {
         inventory: updatedInventory,
         coins: increment(-totalCost)
       });
 
+      await batch.commit();
+
       setSelectedGroup(null);
-      alert(`Successfully repaired ${cardsToRepair} card(s) for ${totalCost.toLocaleString()} Gold.`);
+      alert(`${t.successfullyRepaired || 'Successfully repaired'} ${cardsToRepair} ${t.cardsFor || 'card(s) for'} ${totalCost.toLocaleString()} ${t.gold || 'Gold.'}`);
     } catch (error) {
-      console.error('Error repairing cards:', error);
-      alert('Failed to repair cards.');
+      handleFirestoreError(error, OperationType.WRITE, 'users');
+      alert(t.failedRepair || 'Failed to repair cards.');
     } finally {
       setIsProcessing(false);
     }
@@ -243,18 +255,18 @@ export function Inventory() {
               </div>
               <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/10">
                 <Target size={16} className="text-green-400" />
-                <span className="text-sm font-mono font-bold text-green-400">{profile.completedQuests?.length || 0} Quests</span>
+                <span className="text-sm font-mono font-bold text-green-400">{profile.completedQuests?.length || 0} {t.quests || 'Quests'}</span>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
             <div className="p-4 bg-black/40 rounded-2xl border border-white/5 text-center">
-              <div className="text-xs text-white/40 uppercase font-black mb-1">Gold</div>
+              <div className="text-xs text-white/40 uppercase font-black mb-1">{t.gold || 'Gold'}</div>
               <div className="text-xl font-mono font-black text-yellow-500">{profile.coins.toLocaleString()}</div>
             </div>
             <div className="p-4 bg-black/40 rounded-2xl border border-white/5 text-center">
-              <div className="text-xs text-white/40 uppercase font-black mb-1">Energy</div>
+              <div className="text-xs text-white/40 uppercase font-black mb-1">{t.energy || 'Energy'}</div>
               <div className="text-xl font-mono font-black text-cyan-500">{profile.energy}</div>
             </div>
           </div>
@@ -274,7 +286,7 @@ export function Inventory() {
 
       {groupedCards.length === 0 ? (
         <div className="text-center py-20 text-white/50 border border-dashed border-white/10 rounded-2xl bg-white/5">
-          No cards collected yet. Go to the Altar of Summons!
+          {t.noCards || 'No cards collected yet. Go to the Altar of Summons!'}
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -368,7 +380,7 @@ export function Inventory() {
               className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
             >
               <h2 className="text-2xl font-black uppercase tracking-widest mb-4 flex items-center gap-2">
-                Card Actions
+                {t.cardActions || 'Card Actions'}
               </h2>
               
               <div className="flex gap-4 mb-6">
@@ -376,9 +388,9 @@ export function Inventory() {
                 <div>
                   <h3 className="font-bold text-lg">{selectedGroup[0].characterName}</h3>
                   <p className="text-sm text-white/50">{selectedGroup[0].rarity}</p>
-                  <p className="text-sm text-cyan-400 font-mono mt-1">Owned: {selectedGroup.length}</p>
+                  <p className="text-sm text-cyan-400 font-mono mt-1">{t.owned || 'Owned'}: {selectedGroup.length}</p>
                   {selectedGroup[0].mergeLevel > 0 && (
-                    <p className="text-xs text-yellow-400 font-bold mt-1">Merge Level: +{selectedGroup[0].mergeLevel}</p>
+                    <p className="text-xs text-yellow-400 font-bold mt-1">{t.mergeLevel || 'Merge Level'}: +{selectedGroup[0].mergeLevel}</p>
                   )}
                 </div>
               </div>
@@ -388,7 +400,7 @@ export function Inventory() {
                   onClick={() => handleSellClick(selectedGroup[0])}
                   className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                 >
-                  <DollarSign size={16} /> Sell One Copy
+                  <DollarSign size={16} /> {t.sellOneCopy || 'Sell One Copy'}
                 </button>
                 
                 {selectedGroup.length > 1 && (
@@ -397,7 +409,7 @@ export function Inventory() {
                     disabled={isProcessing}
                     className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    <Layers size={16} /> Merge ({Math.floor((selectedGroup[0].rarity === 'SSR' ? 1000000 : selectedGroup[0].rarity === 'Epic' ? 250000 : selectedGroup[0].rarity === 'Rare' ? 50000 : 10000) * Math.pow(2.5, selectedGroup[0].mergeLevel || 0)).toLocaleString()} G)
+                    <Layers size={16} /> {t.merge || 'Merge'} ({Math.floor((selectedGroup[0].rarity === 'SSR' ? 1000000 : selectedGroup[0].rarity === 'Epic' ? 250000 : selectedGroup[0].rarity === 'Rare' ? 50000 : 10000) * Math.pow(2.5, selectedGroup[0].mergeLevel || 0)).toLocaleString()} G)
                   </button>
                 )}
 
@@ -407,7 +419,7 @@ export function Inventory() {
                     disabled={isProcessing}
                     className="w-full py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-xl font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    <Shield size={16} /> Repair All
+                    <Shield size={16} /> {t.repairAll || 'Repair All'}
                   </button>
                 )}
               </div>
@@ -431,7 +443,7 @@ export function Inventory() {
               exit={{ scale: 0.9, y: 20 }}
               className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
             >
-              <h2 className="text-2xl font-black uppercase tracking-widest mb-4">Sell Card</h2>
+              <h2 className="text-2xl font-black uppercase tracking-widest mb-4">{t.sellCard || 'Sell Card'}</h2>
               
               <div className="flex gap-4 mb-6">
                 <img src={sellingCard.imageUrl} alt="" className="w-20 h-28 object-cover rounded-lg border border-white/10" referrerPolicy="no-referrer" />
@@ -442,7 +454,7 @@ export function Inventory() {
               </div>
 
               <div className="mb-6">
-                <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">Price (Gold)</label>
+                <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">{t.priceGold || 'Price (Gold)'}</label>
                 <input
                   type="number"
                   value={sellPrice}
@@ -450,9 +462,9 @@ export function Inventory() {
                   min="1"
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-yellow-500/50 transition-colors font-mono text-yellow-400"
                 />
-                <p className="text-xs text-white/40 mt-2">30% tax will be deducted upon sale.</p>
+                <p className="text-xs text-white/40 mt-2">{t.taxDeducted || '30% tax will be deducted upon sale.'}</p>
                 <p className="text-[10px] text-red-400 mt-1 font-bold">
-                  Price Floor: {(sellingCard.rarity === 'SSR' ? 500000 : sellingCard.rarity === 'Epic' ? 100000 : sellingCard.rarity === 'Rare' ? 25000 : 5000).toLocaleString()} Gold
+                  {t.priceFloor || 'Price Floor'}: {(sellingCard.rarity === 'SSR' ? 500000 : sellingCard.rarity === 'Epic' ? 100000 : sellingCard.rarity === 'Rare' ? 25000 : 5000).toLocaleString()} {t.gold || 'Gold'}
                 </p>
               </div>
 
@@ -462,14 +474,14 @@ export function Inventory() {
                   disabled={isProcessing}
                   className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-colors disabled:opacity-50"
                 >
-                  Cancel
+                  {t.cancel || 'Cancel'}
                 </button>
                 <button
                   onClick={confirmSell}
                   disabled={isProcessing || sellPrice <= 0}
                   className="flex-1 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase tracking-widest rounded-xl transition-colors disabled:opacity-50"
                 >
-                  {isProcessing ? 'Listing...' : 'List Item'}
+                  {isProcessing ? (t.listing || 'Listing...') : (t.listItem || 'List Item')}
                 </button>
               </div>
             </motion.div>

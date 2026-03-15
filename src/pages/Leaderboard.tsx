@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { collection, query, orderBy, limit, getDocs, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, updateDoc, increment, getDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Trophy, Swords, Crown, AlertTriangle, Clock } from 'lucide-react';
 import { useUserStore } from '../store/useUserStore';
@@ -12,10 +12,23 @@ export function Leaderboard() {
   const t = translations[language] as any;
   const [leaders, setLeaders] = useState<any[]>([]);
   const [timeLeaders, setTimeLeaders] = useState<any[]>([]);
+  const [prevWinner, setPrevWinner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [raidStatus, setRaidStatus] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   const [activeTab, setActiveTab] = useState<'xp' | 'time'>('xp');
   const [timeLeft, setTimeLeft] = useState('');
+
+  const usDateObj = new Date(new Date().toLocaleString("en-US", {timeZone: "America/New_York"}));
+  const dayOfWeek = usDateObj.getDay();
+  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const mondayDate = new Date(usDateObj);
+  mondayDate.setDate(usDateObj.getDate() - diffToMonday);
+  const currentWeekStr = `${mondayDate.getFullYear()}-${mondayDate.getMonth() + 1}-${mondayDate.getDate()}`;
+
+  // Get Previous Week ID
+  const prevMondayDate = new Date(mondayDate);
+  prevMondayDate.setDate(mondayDate.getDate() - 7);
+  const prevWeekStr = `${prevMondayDate.getFullYear()}-${prevMondayDate.getMonth() + 1}-${prevMondayDate.getDate()}`;
 
   useEffect(() => {
     const updateTimer = () => {
@@ -49,15 +62,22 @@ export function Leaderboard() {
 
   const fetchLeaders = async () => {
     try {
-      const qXp = query(collection(db, 'users'), orderBy('xp', 'desc'), limit(50));
+      const qXp = query(collection(db, 'public_profiles'), orderBy('xp', 'desc'), limit(50));
       const snapshotXp = await getDocs(qXp);
       const dataXp = snapshotXp.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setLeaders(dataXp);
 
-      const qTime = query(collection(db, 'users'), orderBy('timeSpent', 'desc'), limit(50));
+      const qTime = query(collection(db, 'public_profiles'), orderBy('weeklyTimeSpent', 'desc'), limit(50));
       const snapshotTime = await getDocs(qTime);
       const dataTime = snapshotTime.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setTimeLeaders(dataTime);
+
+      // Fetch Previous Week Winner
+      const winnerRef = doc(db, 'weekly_winners', prevWeekStr);
+      const winnerSnap = await getDoc(winnerRef);
+      if (winnerSnap.exists()) {
+        setPrevWinner(winnerSnap.data());
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'users');
     } finally {
@@ -84,18 +104,20 @@ export function Leaderboard() {
       const success = Math.random() > 0.6; // 40% success rate
       const userRef = doc(db, 'users', profile.uid);
       const targetRef = doc(db, 'users', target.uid);
+      const batch = writeBatch(db);
 
       if (success) {
         const stolenAmount = Math.floor((target.coins || 0) * 0.01); // Steal 1% (Hellish)
         if (stolenAmount > 0) {
-          await updateDoc(userRef, {
+          batch.update(userRef, {
             coins: increment(stolenAmount),
             energy: increment(-30),
             xp: increment(10)
           });
-          await updateDoc(targetRef, {
+          batch.update(targetRef, {
             coins: increment(-stolenAmount)
           });
+          await batch.commit();
           setRaidStatus({ message: `Raid Successful! You stole ${stolenAmount} Gold from ${target.nickname || target.displayName}`, type: 'success' });
         } else {
           setRaidStatus({ message: "Raid Successful, but the target is broke.", type: 'info' });
@@ -115,26 +137,24 @@ export function Leaderboard() {
     }
   };
 
-  const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7)).toString();
-
   const handleClaimReward = async () => {
-    if (!profile || (activeTab === 'xp' ? leaders[0]?.id : timeLeaders[0]?.id) !== profile.uid) return;
+    if (!profile || prevWinner?.winnerId !== profile.uid) return;
     
-    if (profile.lastChampionReward === currentWeek) {
-      setRaidStatus({ message: "You have already claimed your reward for this week.", type: 'error' });
+    if (profile.lastChampionReward === prevWeekStr) {
+      setRaidStatus({ message: "You have already claimed your reward for being the champion of last week.", type: 'error' });
       return;
     }
     
     try {
       const userRef = doc(db, 'users', profile.uid);
       await updateDoc(userRef, {
-        coins: increment(5000), // Reduced reward
-        xp: increment(500),
-        lastChampionReward: currentWeek,
-        championWeek: currentWeek,
+        coins: increment(10000), // Increased reward for actual weekly winner
+        xp: increment(1000),
+        lastChampionReward: prevWeekStr,
+        championWeek: currentWeekStr,
         profileBanner: 'tournament_champion'
       });
-      setRaidStatus({ message: "Weekly Champion Reward Claimed! +5,000 Gold, +500 XP", type: 'success' });
+      setRaidStatus({ message: "Weekly Champion Reward Claimed! +10,000 Gold, +1,000 XP", type: 'success' });
       fetchLeaders();
     } catch (error) {
       console.error("Claim failed", error);
@@ -205,7 +225,7 @@ export function Leaderboard() {
               : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
           }`}
         >
-          Most Dedicated (Time)
+          Most Dedicated (Weekly)
         </button>
       </div>
 
@@ -214,20 +234,24 @@ export function Leaderboard() {
           <Crown className="text-yellow-400 w-10 h-10 flex-shrink-0" />
           <div>
             <h3 className="font-bold text-yellow-400 text-lg uppercase tracking-widest">{t.weeklyRewardTitle}</h3>
-            <p className="text-sm text-white/70">Top player in either category receives a special reward at the end of the week.</p>
+            <p className="text-sm text-white/70">
+              {prevWinner 
+                ? `Last Week's Champion: ${prevWinner.winnerName}. Reward can only be claimed by the winner.`
+                : "The most dedicated hunter of the week receives a massive reward at the end of the week."}
+            </p>
           </div>
         </div>
-        {profile && displayList[0]?.id === profile.uid && (
+        {profile && prevWinner?.winnerId === profile.uid && (
           <button
             onClick={handleClaimReward}
-            disabled={profile.lastChampionReward === currentWeek}
+            disabled={profile.lastChampionReward === prevWeekStr}
             className={`px-6 py-3 font-black uppercase tracking-widest rounded-xl transition-all ${
-              profile.lastChampionReward === currentWeek 
+              profile.lastChampionReward === prevWeekStr 
                 ? 'bg-yellow-500/20 text-yellow-500/50 cursor-not-allowed' 
                 : 'bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_20px_rgba(234,179,8,0.3)]'
             }`}
           >
-            {profile.lastChampionReward === currentWeek ? 'Claimed' : 'Claim'}
+            {profile.lastChampionReward === prevWeekStr ? 'Claimed' : 'Claim Reward'}
           </button>
         )}
       </div>
@@ -262,7 +286,7 @@ export function Leaderboard() {
                   SS
                 </div>
               )}
-              {user.championWeek === currentWeek && (
+              {user.championWeek === currentWeekStr && (
                 <div className="absolute -top-2 -right-2 bg-yellow-500 text-black text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest border border-yellow-900 shadow-lg transform rotate-12">
                   CHAMP
                 </div>
@@ -274,7 +298,7 @@ export function Leaderboard() {
                 {user.nickname || user.displayName}
                 {index === 0 && <Crown size={16} className="text-yellow-400" />}
                 {user.profileBanner === 'abyssal_conqueror' && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-black tracking-widest uppercase border border-red-500/30">Conqueror</span>}
-                {user.championWeek === currentWeek && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded font-black tracking-widest uppercase border border-yellow-500/30">Champion</span>}
+                {user.championWeek === currentWeekStr && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded font-black tracking-widest uppercase border border-yellow-500/30">Champion</span>}
               </h3>
               <div className="flex items-center gap-4 text-xs font-mono text-white/50">
                 <span className="text-purple-400">{t.rank} {user.rank || 'F'}</span>
@@ -286,7 +310,7 @@ export function Leaderboard() {
                 ) : (
                   <span className="flex items-center gap-1 text-cyan-400">
                     <Clock size={12} />
-                    {Math.floor((user.timeSpent || 0) / 60)}h {(user.timeSpent || 0) % 60}m
+                    {Math.floor((user.weeklyTimeSpent || 0) / 60)}h {(user.weeklyTimeSpent || 0) % 60}m
                   </span>
                 )}
               </div>

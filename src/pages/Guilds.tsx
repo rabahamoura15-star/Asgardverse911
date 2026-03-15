@@ -79,12 +79,12 @@ export function Guilds() {
     if (!profile || !myGuild || !biddingOn) return;
     
     if (myGuild.leaderId !== profile.uid) {
-      alert("Only the Corporation Leader can place bids on territories.");
+      alert(t.onlyLeaderCanBid || "Only the Corporation Leader can place bids on territories.");
       return;
     }
 
     if ((myGuild.goldPool || 0) < bidAmount) {
-      alert("Corporation does not have enough Gold in the pool.");
+      alert(t.notEnoughGoldInPool || "Corporation does not have enough Gold in the pool.");
       return;
     }
 
@@ -100,7 +100,7 @@ export function Guilds() {
         const data = territorySnap.data();
         currentHighestBid = data.highestBid || 0;
         if (bidAmount <= currentHighestBid) {
-          alert(`Bid must be higher than current highest bid (${currentHighestBid.toLocaleString()} G).`);
+          alert(`${t.bidMustBeHigher || 'Bid must be higher than current highest bid'} (${currentHighestBid.toLocaleString()} G).`);
           setIsProcessing(false);
           return;
         }
@@ -134,12 +134,12 @@ export function Guilds() {
         lastBidAt: new Date().toISOString()
       }, { merge: true });
 
-      alert(`Successfully placed a bid of ${bidAmount.toLocaleString()} G on ${biddingOn.title.english || biddingOn.title.romaji}!`);
+      alert(`${t.successfullyPlacedBid || 'Successfully placed a bid of'} ${bidAmount.toLocaleString()} G ${t.on || 'on'} ${biddingOn.title.english || biddingOn.title.romaji}!`);
       setBiddingOn(null);
       fetchGuilds(); // Refresh guild data
     } catch (e) {
       console.error(e);
-      alert("Failed to place bid.");
+      alert(t.failedToPlaceBid || "Failed to place bid.");
     } finally {
       setIsProcessing(false);
     }
@@ -148,7 +148,7 @@ export function Guilds() {
   const handleDonate = async () => {
     if (!profile || !myGuild) return;
     if (profile.coins < donateAmount) {
-      setError('Not enough Gold to donate.');
+      setError(t.notEnoughGoldToDonate || 'Not enough Gold to donate.');
       return;
     }
     if (donateAmount <= 0) return;
@@ -166,11 +166,11 @@ export function Guilds() {
         goldPool: increment(donateAmount)
       });
 
-      alert(`Donated ${donateAmount.toLocaleString()} Gold to the Corporation!`);
+      alert(`${t.donated || 'Donated'} ${donateAmount.toLocaleString()} ${t.goldToCorporation || 'Gold to the Corporation!'}`);
       fetchGuilds();
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, 'guilds');
-      setError('Failed to donate.');
+      setError(t.failedToDonate || 'Failed to donate.');
     } finally {
       setIsProcessing(false);
     }
@@ -206,15 +206,15 @@ export function Guilds() {
   const handleCreateGuild = async () => {
     if (!profile) return;
     if (!profile.hasGuildToken) {
-      setError('You need a Guild Token from the Market to create a guild.');
+      setError(t.needGuildToken || 'You need a Guild Token from the Market to create a guild.');
       return;
     }
     if (profile.coins < 1000000) {
-      setError('You need 1,000,000 Gold to establish a guild.');
+      setError(t.needGoldForGuild || 'You need 1,000,000 Gold to establish a guild.');
       return;
     }
     if (newGuildName.length < 3 || newGuildName.length > 20) {
-      setError('Guild name must be between 3 and 20 characters.');
+      setError(t.guildNameLength || 'Guild name must be between 3 and 20 characters.');
       return;
     }
 
@@ -227,7 +227,7 @@ export function Guilds() {
       
       const guildSnap = await getDoc(guildRef);
       if (guildSnap.exists()) {
-        setError('A guild with this name already exists.');
+        setError(t.guildNameExists || 'A guild with this name already exists.');
         setCreating(false);
         return;
       }
@@ -253,7 +253,7 @@ export function Guilds() {
       fetchGuilds();
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'guilds');
-      setError('Failed to create guild.');
+      setError(t.failedToCreateGuild || 'Failed to create guild.');
     } finally {
       setCreating(false);
     }
@@ -271,7 +271,7 @@ export function Guilds() {
       fetchGuilds();
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `guilds/${guildId}`);
-      setError('Failed to join guild.');
+      setError(t.failedToJoinGuild || 'Failed to join guild.');
     }
   };
 
@@ -362,24 +362,24 @@ export function Guilds() {
             <div>
               <h2 className="text-3xl font-black uppercase tracking-widest text-blue-400 mb-2">{myGuild.name}</h2>
               <div className="flex gap-4 font-mono text-sm text-white/60">
-                <span className="flex items-center gap-1"><Shield size={14} /> Level {myGuild.level}</span>
-                <span className="flex items-center gap-1"><Users size={14} /> {myGuild.members.length} Members</span>
+                <span className="flex items-center gap-1"><Shield size={14} /> {t.level || 'Level'} {myGuild.level}</span>
+                <span className="flex items-center gap-1"><Users size={14} /> {myGuild.members.length} {t.members || 'Members'}</span>
               </div>
             </div>
             <div className="flex flex-col items-end gap-2">
               <div className="text-right">
-                <div className="text-sm text-white/50 mb-1">Guild XP</div>
+                <div className="text-sm text-white/50 mb-1">{t.guildXp || 'Guild XP'}</div>
                 <div className="text-xl font-bold font-mono text-cyan-400">{myGuild.xp} / {myGuild.level * 1000}</div>
               </div>
               <div className="text-right mt-2">
-                <div className="text-sm text-yellow-500/70 mb-1">Gold Pool</div>
+                <div className="text-sm text-yellow-500/70 mb-1">{t.goldPool || 'Gold Pool'}</div>
                 <div className="text-xl font-bold font-mono text-yellow-400">{(myGuild.goldPool || 0).toLocaleString()} G</div>
               </div>
               <button 
                 onClick={handleLeaveGuild}
                 className="flex items-center gap-1 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded border border-red-500/30 text-xs font-bold uppercase tracking-widest transition-colors mt-2"
               >
-                <LogOut size={12} /> {myGuild.leaderId === profile.uid ? 'Disband' : 'Leave'}
+                <LogOut size={12} /> {myGuild.leaderId === profile.uid ? (t.disband || 'Disband') : (t.leave || 'Leave')}
               </button>
             </div>
           </div>
@@ -387,19 +387,19 @@ export function Guilds() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
             <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
               <Swords className="w-8 h-8 mx-auto mb-4 text-red-400" />
-              <h3 className="font-bold mb-2">Territory Wars</h3>
-              <p className="text-sm text-white/50 mb-4">Bid for control over popular anime pages.</p>
+              <h3 className="font-bold mb-2">{t.territoryWars || 'Territory Wars'}</h3>
+              <p className="text-sm text-white/50 mb-4">{t.territoryWarsDesc || 'Bid for control over popular anime pages.'}</p>
               <button 
                 onClick={() => setShowTerritoryWars(true)}
                 className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold rounded-lg transition-colors border border-red-500/30"
               >
-                Enter War Room
+                {t.enterWarRoom || 'Enter War Room'}
               </button>
             </div>
             <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-6 text-center flex flex-col">
               <Shield className="w-8 h-8 mx-auto mb-4 text-yellow-400" />
-              <h3 className="font-bold mb-2 text-yellow-500">Fund Corporation</h3>
-              <p className="text-sm text-white/50 mb-4">Donate Gold to expand your corporation's influence.</p>
+              <h3 className="font-bold mb-2 text-yellow-500">{t.fundCorporation || 'Fund Corporation'}</h3>
+              <p className="text-sm text-white/50 mb-4">{t.fundCorporationDesc || 'Donate Gold to expand your corporation\'s influence.'}</p>
               <div className="mt-auto flex flex-col gap-2">
                 <input
                   type="number"
@@ -413,20 +413,20 @@ export function Guilds() {
                   disabled={isProcessing}
                   className="w-full py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 font-bold uppercase tracking-widest rounded-lg transition-colors border border-yellow-500/50 disabled:opacity-50"
                 >
-                  {isProcessing ? 'Processing...' : 'Donate'}
+                  {isProcessing ? (t.processing || 'Processing...') : (t.donate || 'Donate')}
                 </button>
               </div>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
               <Users className="w-8 h-8 mx-auto mb-4 text-green-400" />
-              <h3 className="font-bold mb-2">Member List</h3>
-              <p className="text-sm text-white/50 mb-4">View and manage guild members.</p>
+              <h3 className="font-bold mb-2">{t.memberList || 'Member List'}</h3>
+              <p className="text-sm text-white/50 mb-4">{t.memberListDesc || 'View and manage guild members.'}</p>
               <button 
                 onClick={fetchMembers}
                 disabled={loadingMembers}
                 className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold transition-colors"
               >
-                {loadingMembers ? 'Loading...' : 'View Members'}
+                {loadingMembers ? (t.loading || 'Loading...') : (t.viewMembers || 'View Members')}
               </button>
             </div>
           </div>
@@ -434,7 +434,7 @@ export function Guilds() {
           {controlledTerritories.length > 0 && (
             <div className="mt-8">
               <h3 className="text-xl font-black uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Shield className="text-blue-400" /> Controlled Territories
+                <Shield className="text-blue-400" /> {t.controlledTerritories || 'Controlled Territories'}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {controlledTerritories.map(territory => (
@@ -443,7 +443,7 @@ export function Guilds() {
                     <div className="p-4 flex-1">
                       <h4 className="font-bold text-sm line-clamp-2 mb-2">{territory.mediaTitle}</h4>
                       <div className="text-xs font-mono text-yellow-400">
-                        Bid: {territory.highestBid.toLocaleString()} G
+                        {t.bid || 'Bid'}: {territory.highestBid.toLocaleString()} G
                       </div>
                     </div>
                   </div>
@@ -456,12 +456,12 @@ export function Guilds() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black tracking-widest uppercase">Active Guilds</h2>
+              <h2 className="text-2xl font-black tracking-widest uppercase">{t.activeGuilds || 'Active Guilds'}</h2>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 w-4 h-4" />
                 <input 
                   type="text" 
-                  placeholder="Search guilds..." 
+                  placeholder={t.searchGuilds || "Search guilds..."}
                   className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-blue-500/50 transition-colors w-64"
                 />
               </div>
@@ -477,8 +477,8 @@ export function Guilds() {
                     <div>
                       <h3 className="font-bold text-lg">{guild.name}</h3>
                       <div className="flex gap-3 text-xs font-mono text-white/50">
-                        <span>Lvl {guild.level}</span>
-                        <span>{guild.members.length} Members</span>
+                        <span>{t.lvl || 'Lvl'} {guild.level}</span>
+                        <span>{guild.members.length} {t.members || 'Members'}</span>
                       </div>
                     </div>
                   </div>
@@ -486,13 +486,13 @@ export function Guilds() {
                     onClick={() => handleJoinGuild(guild.id)}
                     className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors"
                   >
-                    Join
+                    {t.join || 'Join'}
                   </button>
                 </div>
               ))}
               {guilds.length === 0 && (
                 <div className="text-center py-12 text-white/30 font-mono">
-                  No guilds exist yet. Be the first to create one.
+                  {t.noGuilds || 'No guilds exist yet. Be the first to create one.'}
                 </div>
               )}
             </div>
@@ -501,20 +501,20 @@ export function Guilds() {
           <div>
             <div className="bg-black/40 border border-blue-500/30 rounded-2xl p-6 sticky top-24">
               <h2 className="text-xl font-black tracking-widest uppercase mb-6 flex items-center gap-2">
-                <Plus className="text-blue-400" /> Create Guild
+                <Plus className="text-blue-400" /> {t.createGuild || 'Create Guild'}
               </h2>
               <p className="text-sm text-white/60 mb-6">
-                Found your own guild and lead your members to glory. Requires a Guild Token from the Market and 1,000,000 Gold.
+                {t.createGuildDesc || 'Found your own guild and lead your members to glory. Requires a Guild Token from the Market and 1,000,000 Gold.'}
               </p>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">Guild Name</label>
+                  <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">{t.guildName || 'Guild Name'}</label>
                   <input 
                     type="text" 
                     value={newGuildName}
                     onChange={(e) => setNewGuildName(e.target.value)}
-                    placeholder="Enter guild name..."
+                    placeholder={t.enterGuildName || "Enter guild name..."}
                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-blue-500/50 transition-colors"
                   />
                 </div>
@@ -523,7 +523,7 @@ export function Guilds() {
                   disabled={creating || !newGuildName || !profile?.hasGuildToken}
                   className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-black tracking-widest uppercase rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {creating ? 'Creating...' : 'Found Guild (1 Token)'}
+                  {creating ? (t.creating || 'Creating...') : (t.foundGuild || 'Found Guild (1 Token)')}
                 </button>
               </div>
             </div>
@@ -548,7 +548,7 @@ export function Guilds() {
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-black uppercase tracking-widest flex items-center gap-2 text-red-400">
-                  <Swords className="text-red-500" /> War Room
+                  <Swords className="text-red-500" /> {t.warRoom || 'War Room'}
                 </h2>
                 <button onClick={() => setShowTerritoryWars(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                   <X size={20} />
@@ -560,7 +560,7 @@ export function Guilds() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 w-5 h-5" />
                   <input 
                     type="text" 
-                    placeholder="Search anime to conquer..." 
+                    placeholder={t.searchAnimeToConquer || "Search anime to conquer..."}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearchAnime()}
@@ -572,7 +572,7 @@ export function Guilds() {
                   disabled={searching || !searchQuery}
                   className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
                 >
-                  {searching ? 'Scanning...' : 'Search'}
+                  {searching ? (t.scanning || 'Scanning...') : (t.search || 'Search')}
                 </button>
               </div>
 
@@ -591,12 +591,12 @@ export function Guilds() {
                       }}
                       className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold rounded-lg border border-red-500/30 transition-colors"
                     >
-                      Target
+                      {t.target || 'Target'}
                     </button>
                   </div>
                 ))}
                 {searchResults.length === 0 && !searching && searchQuery && (
-                  <div className="text-center py-8 text-white/50">No targets found.</div>
+                  <div className="text-center py-8 text-white/50">{t.noTargetsFound || 'No targets found.'}</div>
                 )}
               </div>
             </motion.div>
@@ -619,13 +619,13 @@ export function Guilds() {
               exit={{ scale: 0.9, y: 20 }}
               className="bg-[#0a0a0a] border border-red-500 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] text-center"
             >
-              <h2 className="text-3xl font-black uppercase tracking-widest text-red-500 mb-2">Declare War</h2>
-              <p className="text-white/60 mb-6">Bid for control of <span className="text-white font-bold">{biddingOn.title.english || biddingOn.title.romaji}</span></p>
+              <h2 className="text-3xl font-black uppercase tracking-widest text-red-500 mb-2">{t.declareWar || 'Declare War'}</h2>
+              <p className="text-white/60 mb-6">{t.bidForControl || 'Bid for control of'} <span className="text-white font-bold">{biddingOn.title.english || biddingOn.title.romaji}</span></p>
               
               <img src={biddingOn.coverImage.large} alt="" className="w-32 h-48 object-cover rounded-xl mx-auto mb-6 border-2 border-red-500/50 shadow-2xl" referrerPolicy="no-referrer" />
 
               <div className="mb-6">
-                <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">Bid Amount (Gold)</label>
+                <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">{t.bidAmountGold || 'Bid Amount (Gold)'}</label>
                 <input
                   type="number"
                   value={bidAmount}
@@ -633,7 +633,7 @@ export function Guilds() {
                   min="100000"
                   className="w-full px-4 py-3 bg-black/50 border border-red-500/50 rounded-xl focus:outline-none focus:border-red-400 transition-colors font-mono text-yellow-400 text-center text-xl"
                 />
-                <p className="text-xs text-yellow-500/50 mt-2">Available Pool: {(myGuild.goldPool || 0).toLocaleString()} G</p>
+                <p className="text-xs text-yellow-500/50 mt-2">{t.availablePool || 'Available Pool'}: {(myGuild.goldPool || 0).toLocaleString()} G</p>
               </div>
 
               <div className="flex gap-4">
@@ -642,14 +642,14 @@ export function Guilds() {
                   disabled={isProcessing}
                   className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-colors disabled:opacity-50"
                 >
-                  Retreat
+                  {t.retreat || 'Retreat'}
                 </button>
                 <button
                   onClick={handlePlaceBid}
                   disabled={isProcessing || bidAmount > (myGuild.goldPool || 0)}
                   className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest rounded-xl transition-colors disabled:opacity-50"
                 >
-                  {isProcessing ? 'Deploying...' : 'Attack'}
+                  {isProcessing ? (t.deploying || 'Deploying...') : (t.attack || 'Attack')}
                 </button>
               </div>
             </motion.div>
@@ -674,7 +674,7 @@ export function Guilds() {
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-black uppercase tracking-widest flex items-center gap-2">
-                  <Users className="text-green-400" /> Members
+                  <Users className="text-green-400" /> {t.members || 'Members'}
                 </h2>
                 <button onClick={() => setShowMembers(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                   <X size={20} />
@@ -705,7 +705,7 @@ export function Guilds() {
                           {member.profileBanner === 'abyssal_conqueror' && <span className="text-[8px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded font-black tracking-widest uppercase border border-red-500/30">Conqueror</span>}
                           {member.profileBanner === 'tournament_champion' && <span className="text-[8px] bg-yellow-500/20 text-yellow-400 px-1 py-0.5 rounded font-black tracking-widest uppercase border border-yellow-500/30">Champion</span>}
                         </div>
-                        <div className="text-xs text-white/50 font-mono">Level {member.level || 1}</div>
+                        <div className="text-xs text-white/50 font-mono">{t.level || 'Level'} {member.level || 1}</div>
                       </div>
                     </div>
                   </div>

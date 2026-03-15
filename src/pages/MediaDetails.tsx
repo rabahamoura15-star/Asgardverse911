@@ -7,6 +7,7 @@ import { ArrowLeft, Star, Play, BookOpen, Languages, Youtube, Sparkles } from 'l
 import { useUserStore } from '../store/useUserStore';
 import { translations } from '../translations';
 import { GoogleGenAI } from "@google/genai";
+import { InterstitialAd } from '../components/InterstitialAd';
 
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -20,6 +21,10 @@ export function MediaDetails() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [trailerWatched, setTrailerWatched] = useState(false);
   const [territory, setTerritory] = useState<any>(null);
+  const [isAdOpen, setIsAdOpen] = useState(false);
+  const [isApologyOpen, setIsApologyOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const { updateMediaInteraction } = useUserStore();
 
   const { data: media, isLoading } = useQuery({
     queryKey: ['mediaDetails', type, id],
@@ -47,14 +52,71 @@ export function MediaDetails() {
   useEffect(() => {
     if (media) {
       trackAction('view');
+      if (media.countryOfOrigin === 'KR') {
+        trackAction('manhwa');
+      }
     }
   }, [media?.id]);
 
-  const handleTrailerClick = () => {
-    if (!trailerWatched) {
-      trackAction('trailer');
-      setTrailerWatched(true);
+  const handleAdClose = () => {
+    setIsAdOpen(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
     }
+  };
+
+  const checkCooldown = () => {
+    if (!profile || !id) return true; // Default to showing ad if no profile
+    const lastInteraction = profile.mediaLastInteraction?.[id];
+    if (!lastInteraction) return true;
+
+    const lastDate = new Date(lastInteraction);
+    const now = new Date();
+    const diffHours = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+    return diffHours >= 12;
+  };
+
+  const triggerActionWithAd = (action: () => void) => {
+    if (checkCooldown()) {
+      setPendingAction(() => async () => {
+        if (id) await updateMediaInteraction(id);
+        action();
+      });
+      setIsApologyOpen(true);
+    } else {
+      action();
+    }
+  };
+
+  const handleTrailerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!media?.trailer?.id) return;
+
+    const action = () => {
+      if (!trailerWatched) {
+        trackAction('trailer');
+        setTrailerWatched(true);
+      }
+    };
+
+    triggerActionWithAd(action);
+  };
+
+  const handleReadNowClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!media) return;
+    
+    const title = media.title.english || media.title.romaji || media.title.native;
+    const isAnime = type === 'ANIME';
+    const suffix = isAnime ? (t.episodeOne || 'Episode 1') : (t.chapterOne || 'Chapter 1');
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(`${title} ${suffix}`)}`;
+
+    const action = () => {
+      window.open(searchUrl, '_blank');
+    };
+
+    triggerActionWithAd(action);
   };
 
   useEffect(() => {
@@ -165,27 +227,30 @@ export function MediaDetails() {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-4 mb-8">
-            {type === 'MANGA' && (
-              <a 
-                href={`https://mangadex.org/titles?q=${encodeURIComponent(title)}`}
-                target="_blank"
-                rel="noopener noreferrer"
+          <div className="flex flex-col gap-2 mb-8">
+            <div className="flex flex-wrap gap-4">
+              <button 
+                onClick={handleReadNowClick}
                 className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(147,51,234,0.4)] hover:shadow-[0_0_30px_rgba(147,51,234,0.6)] hover:-translate-y-1"
               >
-                <BookOpen size={20} /> Read on MangaDex
-              </a>
-            )}
-            {type === 'ANIME' && (
-              <a 
-                href={`https://crunchyroll.com/search?q=${encodeURIComponent(title)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_30px_rgba(234,88,12,0.6)] hover:-translate-y-1"
-              >
-                <Play size={20} /> Watch on Crunchyroll
-              </a>
-            )}
+                {type === 'ANIME' ? <Play size={20} /> : <BookOpen size={20} />}
+                {type === 'ANIME' ? (t.watchNow || 'Watch Now') : (t.readNow || 'Read Now')}
+              </button>
+              
+              {type === 'ANIME' && (
+                <a 
+                  href={`https://crunchyroll.com/search?q=${encodeURIComponent(title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_30px_rgba(234,88,12,0.6)] hover:-translate-y-1"
+                >
+                  <Play size={20} /> Watch on Crunchyroll
+                </a>
+              )}
+            </div>
+            <p className="text-xs text-white/50 italic max-w-md">
+              {t.readNowDesc || "Support us by clicking 'Read Now'. An ad will appear, and you will be redirected to read the manga."}
+            </p>
           </div>
 
           <div className="relative">
@@ -304,6 +369,36 @@ export function MediaDetails() {
           </div>
         </div>
       )}
+
+      {/* Ad Apology Modal */}
+      {isApologyOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-[#1a1a1a] border border-white/10 p-8 rounded-3xl max-w-md w-full text-center"
+          >
+            <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Sparkles className="w-10 h-10 text-purple-500" />
+            </div>
+            <h3 className="text-2xl font-black uppercase tracking-widest mb-4">{t.adApologyTitle}</h3>
+            <p className="text-white/70 mb-8 leading-relaxed">
+              {t.adApologyMessage}
+            </p>
+            <button
+              onClick={() => {
+                setIsApologyOpen(false);
+                setIsAdOpen(true);
+              }}
+              className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-black uppercase tracking-widest rounded-xl transition-all"
+            >
+              {t.continueToWork}
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      <InterstitialAd isOpen={isAdOpen} onClose={handleAdClose} />
     </div>
   );
 }

@@ -20,16 +20,38 @@
         "nsfwEnabled": { "type": "boolean" },
         "role": { "type": "string", "enum": ["admin", "user"] },
         "inventory": { "type": "array", "items": { "type": "object" }, "description": "The items the user owns, including durability and merge level." },
-        "pityCounter": { "type": "number", "description": "Pity counter for gacha." },
+        "pityCounters": { "type": "object", "description": "Pity counters for different banners." },
         "lastTaxTime": { "type": "string", "format": "date-time", "description": "Last time the wealth tax was applied." },
         "protectionWardUntil": { "type": "string", "format": "date-time", "description": "Expiration time of the protection ward." },
         "abyssFloor": { "type": "number", "description": "Current floor in the Infinite Abyss." },
         "abyssRewards": { "type": "object", "description": "Accumulated rewards in the current Abyss run." },
         "lastRaid": { "type": "string", "format": "date-time", "description": "Last time the user raided." },
         "lastGateEntry": { "type": "string", "format": "date-time", "description": "Last time the user entered a gate." },
-        "worldBossDamage": { "type": "number", "description": "Damage dealt to the current world boss." }
+        "worldBossDamage": { "type": "number", "description": "Damage dealt to the current world boss." },
+        "lastPassiveReward": { "type": "string", "format": "date-time", "description": "Last time passive XP/Energy was granted." },
+        "weeklyTimeSpent": { "type": "number", "description": "Time spent this week in minutes." }
       },
-      "required": ["uid", "xp", "level", "rank", "coins", "voidCrystals", "abyssalDust", "energy", "lastLogin", "nsfwEnabled", "role", "pityCounter"]
+      "required": ["uid", "xp", "level", "rank", "coins", "voidCrystals", "abyssalDust", "energy", "lastLogin", "nsfwEnabled", "role", "pityCounters"]
+    },
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Publicly visible user data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "nickname": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "xp": { "type": "number" },
+        "level": { "type": "number" },
+        "rank": { "type": "string" },
+        "coins": { "type": "number" },
+        "energy": { "type": "number" },
+        "weeklyTimeSpent": { "type": "number" },
+        "profileBanner": { "type": "string" },
+        "championWeek": { "type": "string" }
+      },
+      "required": ["uid", "xp", "level", "rank"]
     },
     "Guild": {
       "title": "Guild",
@@ -75,6 +97,18 @@
         "lastBidAt": { "type": "string", "format": "date-time" }
       },
       "required": ["mediaId", "mediaTitle", "controllingGuildId", "controllingGuildName", "highestBid", "lastBidAt"]
+    },
+    "WeeklyWinner": {
+      "title": "WeeklyWinner",
+      "description": "Winner of the weekly leaderboard",
+      "type": "object",
+      "properties": {
+        "winnerId": { "type": "string" },
+        "winnerName": { "type": "string" },
+        "score": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["winnerId", "winnerName", "score", "timestamp"]
     }
   },
   "firestore": {
@@ -93,6 +127,14 @@
     "/territories/{territoryId}": {
       "schema": { "$ref": "#/entities/Territory" },
       "description": "Territory Wars data"
+    },
+    "/weekly_winners/{weekId}": {
+      "schema": { "$ref": "#/entities/WeeklyWinner" },
+      "description": "History of weekly winners"
+    },
+    "/public_profiles/{userId}": {
+      "schema": { "$ref": "#/entities/PublicProfile" },
+      "description": "Publicly visible user profiles for leaderboard"
     }
   }
 }

@@ -12,24 +12,6 @@ export function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v:
   const { language, setLanguage, profile } = useUserStore();
   const t = translations[language] as any;
 
-  // Browsing XP Timer: 1 XP every 60 seconds
-  useEffect(() => {
-    if (!profile) return;
-    
-    const interval = setInterval(async () => {
-      try {
-        const userRef = doc(db, 'users', profile.uid);
-        await updateDoc(userRef, {
-          xp: increment(1)
-        });
-      } catch (error) {
-        console.error('Failed to grant browsing XP', error);
-      }
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [profile?.uid]);
-
   const toggleNsfw = async () => {
     if (!profile) return;
     const userRef = doc(db, 'users', profile.uid);
