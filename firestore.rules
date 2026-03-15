@@ -90,7 +90,6 @@ service cloud.firestore {
                         (!('role' in resource.data) ? request.resource.data.role == 'user' : request.resource.data.role == resource.data.role) && 
                         (!('uid' in resource.data) ? request.resource.data.uid == request.auth.uid : request.resource.data.uid == resource.data.uid) &&
                         // Limit how much a user can grant themselves (anti-cheat)
-                        (request.resource.data.coins <= resource.data.coins + 200000) && // Increased for weekly rewards
                         (request.resource.data.xp <= resource.data.xp + 10000) &&
                         (request.resource.data.level <= resource.data.level + 1) &&
                         // Passive reward rate limiting
