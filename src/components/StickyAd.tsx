@@ -55,23 +55,31 @@ export function StickyAd() {
     // Clear previous ad content
     adRef.current.innerHTML = '';
 
-    // Set global atOptions
-    (window as any).atOptions = {
-      'key' : 'b9cfaec715e181f712dfe3d6b0fe0b4a',
-      'format' : 'iframe',
-      'height' : 50,
-      'width' : 320,
-      'params' : {}
-    };
-
-    // Create the script element for the invoke.js
-    const invokeScript = document.createElement('script');
-    invokeScript.type = 'text/javascript';
-    invokeScript.src = 'https://www.highperformanceformat.com/b9cfaec715e181f712dfe3d6b0fe0b4a/invoke.js';
-    invokeScript.async = true;
-
-    // Append to the container
-    adRef.current.appendChild(invokeScript);
+    // Create a sandboxed iframe to contain the ad
+    const iframe = document.createElement('iframe');
+    iframe.width = '320px';
+    iframe.height = '50px';
+    iframe.style.border = 'none';
+    iframe.sandbox = 'allow-scripts allow-forms allow-popups';
+    
+    // Use srcdoc to isolate the ad script
+    iframe.srcdoc = `
+      <html>
+        <body>
+          <script>
+            window.atOptions = {
+              'key' : 'b9cfaec715e181f712dfe3d6b0fe0b4a',
+              'format' : 'iframe',
+              'height' : 50,
+              'width' : 320,
+              'params' : {}
+            };
+          </script>
+          <script src="https://www.highperformanceformat.com/b9cfaec715e181f712dfe3d6b0fe0b4a/invoke.js" async></script>
+        </body>
+      </html>
+    `;
+    adRef.current.appendChild(iframe);
 
     return () => {
       if (adRef.current) {

@@ -21,6 +21,7 @@ export function InterstitialAd({ isOpen, onClose }: InterstitialAdProps) {
       iframe.width = '100%';
       iframe.height = '100%';
       iframe.style.border = 'none';
+      iframe.sandbox = 'allow-scripts allow-forms allow-popups'; // Added sandbox
       adRef.current.appendChild(iframe);
     }
   }, [isOpen]);
